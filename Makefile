@@ -1,4 +1,7 @@
-# https://stackoverflow.com/questions/18136918/how-to-get-current-relative-directory-of-your-makefile
+################################################################################
+## project base
+## https://stackoverflow.com/questions/18136918/how-to-get-current-relative-directory-of-your-makefile
+################################################################################
 MAKEFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 PROJECT_DIRPATH := $(dir $(MAKEFILE_PATH))
 
@@ -12,21 +15,25 @@ UID := $(shell id -u)
 GID := $(shell id -g)
 PASSWORD := $(USER)
 R_DYNTRACE := $(PROJECT_DIRPATH)R-dyntrace/bin/R
+
 ################################################################################
-## tee
+## applications
 ################################################################################
 TEE := tee
 TEE_FLAGS := --ignore-interrupts
 
-################################################################################
-## xvfb
-################################################################################
+TIME := time --portability
+
 XVFB_RUN := xvfb-run
 
+MV := mv
+
+RM := rm
+
 ################################################################################
-## time
+## parallelism
 ################################################################################
-TIME := time --portability
+CPU_COUNT := 72
 
 ################################################################################
 ## package setup options
@@ -42,8 +49,6 @@ PACKAGE_TEST_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/tests
 PACKAGE_EXAMPLE_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/examples
 PACKAGE_VIGNETTE_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/doc
 PACKAGE_LOG_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/log
-
-CPU_COUNT := 72
 
 initialize:
 	mkdir library
@@ -176,6 +181,15 @@ install.packages(packages,
                                   'Enhances'));
 endef
 
+install-cran: mirror-cran
+	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)
+	@mkdir -p $(PACKAGE_LIB_DIRPATH)
+	@mkdir -p $(PACKAGE_SRC_DIRPATH)
+	@mkdir -p $(PACKAGE_LOG_DIRPATH)
+
+	$(XVFB_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_CRAN_PACKAGES_CODE))" 2>&1 > $(PACKAGE_LOG_DIRPATH)/cran.log
+	$(MV) -f *.out $(PACKAGE_LOG_DIRPATH) 2> /dev/null
+
 define INSTALL_BIOC_PACKAGES_CODE
 options(repos = 'file://$(PACKAGE_MIRROR_DIRPATH)/cran');
 options(BioC_mirror = '$(PACKAGE_MIRROR_DIRPATH)/bioconductor');
@@ -196,15 +210,6 @@ install(packages,
                          'Enhances'));
 endef
 
-install-cran: mirror-cran
-	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)
-	@mkdir -p $(PACKAGE_LIB_DIRPATH)
-	@mkdir -p $(PACKAGE_SRC_DIRPATH)
-	@mkdir -p $(PACKAGE_LOG_DIRPATH)
-
-	$(XVFB_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_CRAN_PACKAGES_CODE))" 2>&1 > $(PACKAGE_LOG_DIRPATH)/cran.log
-	$(MV) -f *.out $(PACKAGE_LOG_DIRPATH) 2> /dev/null
-
 install-bioc: mirror-bioc
 	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)
 	@mkdir -p $(PACKAGE_LIB_DIRPATH)
@@ -216,23 +221,3 @@ install-bioc: mirror-bioc
 
 	$(XVFB_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_BIOC_PACKAGES_CODE))" 2>&1 > $(PACKAGE_LOG_DIRPATH)/bioc.log
 	$(MV) -f *.out $(PACKAGE_LOG_DIRPATH) 2> /dev/null
-
-install-packages2:
-	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)
-	@mkdir -p $(PACKAGE_LIB_DIRPATH)
-	@mkdir -p $(PACKAGE_LOG_DIRPATH)
-
-	mkdir -p $(PACKAGE_MIRROR_DIRPATH)/bioconductor/packages
-	ln -sfn $(PACKAGE_MIRROR_DIRPATH)/bioconductor/release $(PACKAGE_MIRROR_DIRPATH)/bioconductor/packages/3.12
-
-	$(TIME) $(XVFB_RUN) $(R_DYNTRACE) $(R_DYNTRACE_FLAGS)                              \
-	                                  --file=scripts/install-packages.R                \
-	                                  --args $(PACKAGE_SETUP_REPOSITORIES)             \
-	                                         --ncpus=$(CPU_COUNT)                      \
-	                                         --cran-mirror-url=file:$(PACKAGE_MIRROR_DIRPATH)/cran \
-	                                         --cran-lib-dirpath=$(PACKAGE_LIB_DIRPATH) \
-	                                         --cran-src-dirpath=$(CRAN_PACKAGE_SRC_DIRPATH) \
-	                                         --cran-log-dirpath=$(PACKAGE_LOG_DIRPATH) \
-	                                         --bioc-lib-dirpath=$(PACKAGE_LIB_DIRPATH) \
-	                                         --bioc-src-dirpath=$(BIOC_PACKAGE_SRC_DIRPATH) \
-	                                         --bioc-log-dirpath=$(PACKAGE_LOG_DIRPATH)
