@@ -1,0 +1,11 @@
+CXX11=clang++ #g++
+CC=clang #gcc
+## for C code
+CFLAGS=-g3 -ggdb -O0 #-mtune=native -Wall -pedantic -Weverything
+## for C++ code
+CXXFLAGS=-g3 -ggdb -O0 #-mtune=native -Wall -pedantic
+CPPFLAGS=-g3 -ggdb -O0 #-mtune=native -Wall -pedantic
+
+##-Weverything -Wno-reserved-id-macro -Wno-c++98-compat-pedantic -Wno-weak-vtables -Wno-padded -Wno-unused-parameter
+##clang++
+##clang
