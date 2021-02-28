@@ -192,7 +192,7 @@ install-cran: mirror-cran
 
 define INSTALL_BIOC_PACKAGES_CODE
 options(repos = 'file://$(PACKAGE_MIRROR_DIRPATH)/cran');
-options(BioC_mirror = '$(PACKAGE_MIRROR_DIRPATH)/bioconductor');
+options(BioC_mirror = 'file://$(PACKAGE_MIRROR_DIRPATH)/bioconductor');
 library(BiocManager);
 packages <- setdiff(available(), installed.packages()[,1]);
 cat('Installing', length(packages), 'packages with', $(CPU_COUNT), 'cpus\n');
