@@ -286,6 +286,16 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -qy install \
 #    apt-get -y update && \
 #    DEBIAN_FRONTEND=noninteractive apt-get -yq install rcheckserver
 
+# https://people.math.aau.dk/~slb/kurser/r-11/install.html
+RUN wget -c "http://www.openbugs.net/w/OpenBUGS_3_2_3?action=AttachFile&do=get&target=OpenBUGS-3.2.3.tar.gz" -O OpenBUGS-3.2.3 && \
+    tar zxvf OpenBUGS-3.2.3.tar.gz &&                                                                                             \
+    cd OpenBUGS-3.2.3 &&                                                                                                          \
+    ./configure &&                                                                                                                \
+    make &&                                                                                                                       \
+    make install &&                                                                                                               \
+    cd .. &&                                                                                                                      \
+    rm -rf OpenBUGS*
+
 ################################################################################
 ## Arguments
 ## (https://medium.com/faun/set-current-host-user-for-docker-container-4e521cef9ffc)
