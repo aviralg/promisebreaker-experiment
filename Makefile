@@ -105,10 +105,10 @@ endef
 
 # https://gist.github.com/nicferrier/2277987
 define clonepull
-if [ ! -d ${3}/.git ]; then            \
-    git clone --branch ${1} ${2} ${3}; \
-else                                   \
-    cd ${3} && git pull;               \
+if [ ! -d ${3}/.git ]; then                                            \
+    git clone --branch ${1} ${2} ${3} 2>&1 | $(TEE) $(TEE_FLAGS) ${4}; \
+else                                                                   \
+    cd ${3} && git pull 2>&1 | $(TEE) $(TEE_FLAGS) ${4};               \
 fi;
 endef
 
@@ -154,7 +154,7 @@ experiment-setup-dockr:
 	mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	mkdir -p $(LOGS_SETUP_DIRPATH)
 	mkdir -p $(LOGS_SETUP_DOCKR_DIRPATH)
-	$(call clonepull, $(DOCKR_BRANCH), $(DOCKR_GIT_URL), $(EXPERIMENT_SETUP_DOCKR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_DOCKR_DIRPATH)/clone.log
+	$(call clonepull, $(DOCKR_BRANCH), $(DOCKR_GIT_URL), $(EXPERIMENT_SETUP_DOCKR_DIRPATH), $(LOGS_SETUP_DOCKR_DIRPATH)/clone.log)
 	docker build                              \
 	       --build-arg USER=$(USER)           \
 	       --build-arg UID=$(UID)             \
@@ -176,7 +176,7 @@ R_DYNTRACE_BIN := $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH)/bin/R
 experiment-setup-r-dyntrace:
 	mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	mkdir -p $(LOGS_SETUP_R_DYNTRACE_DIRPATH)
-	$(call clonepull, $(R_DYNTRACE_BRANCH), $(R_DYNTRACE_GIT_URL), $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/clone.log
+	$(call clonepull, $(R_DYNTRACE_BRANCH), $(R_DYNTRACE_GIT_URL), $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH), $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/clone.log)
 	cd $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH) && ./build 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/build.log
 
 ################################################################################
@@ -377,7 +377,7 @@ LOGS_SETUP_INSTRUMENTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/instrumentr
 experiment-setup-instrumentr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_INSTRUMENTR_DIRPATH)
-	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/clone.log
+	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH), $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/clone.log)
 	cd $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/install.log
 
 ################################################################################
@@ -392,7 +392,7 @@ LOGS_SETUP_EXPERIMENTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/experimentr
 experiment-setup-experimentr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_EXPERIMENTR_DIRPATH)
-	$(call clonepull, $(EXPERIMENTR_BRANCH), $(EXPERIMENTR_GIT_URL), $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/clone.log
+	$(call clonepull, $(EXPERIMENTR_BRANCH), $(EXPERIMENTR_GIT_URL), $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH), $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/clone.log)
 	cd $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/install.log
 
 ################################################################################
@@ -407,7 +407,7 @@ LOGS_SETUP_LAZR_DIRPATH := $(LOGS_SETUP_DIRPATH)/lazr
 experiment-setup-lazr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_LAZR_DIRPATH)
-	$(call clonepull,$(LAZR_BRANCH), $(LAZR_GIT_URL), $(EXPERIMENT_SETUP_LAZR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LAZR_DIRPATH)/clone.log
+	$(call clonepull,$(LAZR_BRANCH), $(LAZR_GIT_URL), $(EXPERIMENT_SETUP_LAZR_DIRPATH), $(LOGS_SETUP_LAZR_DIRPATH)/clone.log)
 	cd $(EXPERIMENT_SETUP_LAZR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LAZR_DIRPATH)/install.log
 
 ################################################################################
@@ -422,7 +422,7 @@ LOGS_SETUP_STRICTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/strictr
 experiment-setup-strictr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_STRICTR_DIRPATH)
-	$(call clonepull, $(STRICTR_BRANCH), $(STRICTR_GIT_URL), $(EXPERIMENT_SETUP_STRICTR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_STRICTR_DIRPATH)/clone.log
+	$(call clonepull, $(STRICTR_BRANCH), $(STRICTR_GIT_URL), $(EXPERIMENT_SETUP_STRICTR_DIRPATH), $(LOGS_SETUP_STRICTR_DIRPATH)/clone.log)
 	cd $(EXPERIMENT_SETUP_STRICTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_STRICTR_DIRPATH)/install.log
 
 
