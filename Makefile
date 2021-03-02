@@ -35,6 +35,7 @@ CPU_COUNT := 72
 ## Github
 ################################################################################
 AVIRALG_GIT_URL := git@github.com:aviralg
+PRL_PRG_GIT_URL := git@github.com:PRL-PRG
 
 ################################################################################
 ## package setup options
@@ -102,6 +103,16 @@ define newline
 
 endef
 
+# https://gist.github.com/nicferrier/2277987
+define clonepull
+if [ ! -d ${3}/.git ]                 \
+then                                  \
+    git clone --branch ${1} ${2} ${3} \
+else                                  \
+    cd ${3} && git pull ${3}          \
+fi
+endef
+
 ################################################################################
 ## experiment
 ################################################################################
@@ -144,7 +155,7 @@ experiment-setup-dockr:
 	mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	mkdir -p $(LOGS_SETUP_DIRPATH)
 	mkdir -p $(LOGS_SETUP_DOCKR_DIRPATH)
-	git clone --branch $(DOCKR_BRANCH) $(DOCKR_GIT_URL) $(EXPERIMENT_SETUP_DOCKR_DIRPATH) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_DOCKR_DIRPATH)/clone.log
+	$(call clonepull, $(DOCKR_BRANCH), $(DOCKR_GIT_URL), $(EXPERIMENT_SETUP_DOCKR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_DOCKR_DIRPATH)/clone.log
 	docker build                              \
 	       --build-arg USER=$(USER)           \
 	       --build-arg UID=$(UID)             \
@@ -158,7 +169,7 @@ experiment-setup-dockr:
 ################################################################################
 
 R_DYNTRACE_BRANCH := r-4.0.2
-R_DYNTRACE_GIT_URL := $(AVIRALG_GIT_URL)/R-ddyntrace.git
+R_DYNTRACE_GIT_URL := $(PRL_PRG_GIT_URL)/R-dyntrace.git
 EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/R-dyntrace
 LOGS_SETUP_R_DYNTRACE_DIRPATH := $(LOGS_SETUP_DIRPATH)/R-dyntrace
 R_DYNTRACE_BIN := $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH)/bin/R
@@ -166,7 +177,7 @@ R_DYNTRACE_BIN := $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH)/bin/R
 experiment-setup-r-dyntrace:
 	mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	mkdir -p $(LOGS_SETUP_R_DYNTRACE_DIRPATH)
-	git clone --branch $(R_DYNTRACE_BRANCH) $(R_DYNTRACE_GIT_URL) $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/clone.log
+	$(call clonepull, $(R_DYNTRACE_BRANCH), $(R_DYNTRACE_GIT_URL), $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/clone.log
 	cd $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH) && ./build 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/build.log
 
 ################################################################################
@@ -359,15 +370,15 @@ experiment-setup-repository-snapshot:
 ## experiment/setup/instrumentr
 ################################################################################
 
-INSTRUMENTR_BRANCH := master
-INSTRUMENTR_GIT_URL := $(AVIRALG_GIT_URL)/instrumentr.git
+INSTRUMENTR_BRANCH := c-api
+INSTRUMENTR_GIT_URL := $(PRL_PRG_GIT_URL)/instrumentr.git
 EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/instrumentr
 LOGS_SETUP_INSTRUMENTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/instrumentr
 
 experiment-setup-instrumentr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_INSTRUMENTR_DIRPATH)
-	git clone --branch $(INSTRUMENTR_BRANCH) $(INSTRUMENTR_GIT_URL) $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/clone.log
+	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/clone.log
 	cd $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/install.log
 
 ################################################################################
@@ -377,11 +388,13 @@ experiment-setup-instrumentr:
 EXPERIMENTR_BRANCH := master
 EXPERIMENTR_GIT_URL := $(AVIRALG_GIT_URL)/experimentr.git
 EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/experimentr
+LOGS_SETUP_EXPERIMENTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/experimentr
 
 experiment-setup-experimentr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	git clone --branch $(EXPERIMENTR_BRANCH) $(EXPERIMENTR_GIT_URL) $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH)
-	cd $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN)
+	@mkdir -p $(LOGS_SETUP_EXPERIMENTR_DIRPATH)
+	$(call clonepull, $(EXPERIMENTR_BRANCH), $(EXPERIMENTR_GIT_URL), $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/clone.log
+	cd $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/install.log
 
 ################################################################################
 ## experiment/setup/lazr
@@ -390,11 +403,13 @@ experiment-setup-experimentr:
 LAZR_BRANCH := master
 LAZR_GIT_URL := $(AVIRALG_GIT_URL)/lazr.git
 EXPERIMENT_SETUP_LAZR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/lazr
+LOGS_SETUP_LAZR_DIRPATH := $(LOGS_SETUP_DIRPATH)/lazr
 
 experiment-setup-lazr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	git clone --branch $(LAZR_BRANCH) $(LAZR_GIT_URL) $(EXPERIMENT_SETUP_LAZR_DIRPATH)
-	cd $(EXPERIMENT_SETUP_LAZR_DIRPATH) && make R=$(R_DYNTRACE_BIN)
+	@mkdir -p $(LOGS_SETUP_LAZR_DIRPATH)
+	$(call clonepull,$(LAZR_BRANCH), $(LAZR_GIT_URL), $(EXPERIMENT_SETUP_LAZR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LAZR_DIRPATH)/clone.log
+	cd $(EXPERIMENT_SETUP_LAZR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LAZR_DIRPATH)/install.log
 
 ################################################################################
 ## experiment/setup/strictr
@@ -403,11 +418,13 @@ experiment-setup-lazr:
 STRICTR_BRANCH := master
 STRICTR_GIT_URL := $(AVIRALG_GIT_URL)/strictr.git
 EXPERIMENT_SETUP_STRICTR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/strictr
+LOGS_SETUP_STRICTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/strictr
 
 experiment-setup-strictr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	git clone --branch $(STRICTR_BRANCH) $(STRICTR_GIT_URL) $(EXPERIMENT_SETUP_STRICTR_DIRPATH)
-	cd $(EXPERIMENT_SETUP_STRICTR_DIRPATH) && make R=$(R_DYNTRACE_BIN)
+	@mkdir -p $(LOGS_SETUP_STRICTR_DIRPATH)
+	$(call clonepull, $(STRICTR_BRANCH), $(STRICTR_GIT_URL), $(EXPERIMENT_SETUP_STRICTR_DIRPATH)) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_STRICTR_DIRPATH)/clone.log
+	cd $(EXPERIMENT_SETUP_STRICTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_STRICTR_DIRPATH)/install.log
 
 
 ################################################################################
