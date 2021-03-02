@@ -50,6 +50,17 @@ PACKAGE_EXAMPLE_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/examples
 PACKAGE_VIGNETTE_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/doc
 PACKAGE_LOG_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/log
 
+
+################################################################################
+## corpus
+################################################################################
+CORPUS_DIRPATH := $(PROJECT_DIRPATH)corpus
+CORPUS_INDEX_DIRPATH := $(CORPUS_DIRPATH)/index
+CORPUS_DATA_DIRPATH := $(CORPUS_DIRPATH)/data
+CORPUS_LOGS_DIRPATH := $(CORPUS_DIRPATH)/logs
+CORPUS_INDEX_ALL_FILEPATH := $(CORPUS_INDEX_DIRPATH)/all.fst
+CORPUS_DATA_ALL_DIRPATH := $(CORPUS_DATA_DIRPATH)/all
+
 initialize:
 	mkdir library
 
@@ -221,3 +232,88 @@ install-bioc: mirror-bioc
 
 	$(XVFB_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_BIOC_PACKAGES_CODE))" 2>&1 > $(PACKAGE_LOG_DIRPATH)/bioc.log
 	$(MV) -f *.out $(PACKAGE_LOG_DIRPATH) 2> /dev/null
+
+# Experiments
+
+################################################################################
+## Experiments
+################################################################################
+experiment: experiment-setup		\
+            experiment-corpus		\
+            experiment-profile	\
+            experiment-remove		\
+            experiment-analyze
+
+
+################################################################################
+## Experiment: Setup
+################################################################################
+experiment-setup: experiment-setup-mirror  \
+                  experiment-setup-untar   \
+                  experiment-setup-install \
+                  experiment-setup-version
+
+experiment-setup-mirror:
+experiment-setup-untar:
+experiment-setup-install:
+experiment-setup-version:
+
+
+################################################################################
+## Experiment: Corpus
+################################################################################
+experiment-corpus: experiment-corpus-extract      \
+                   experiment-corpus-sloc         \
+                   experiment-corpus-determinism
+
+
+define CODE_EXTRACT_CODE
+library(experimentr);
+res <- extract_code(installed.packages()[,1],
+                    type=c('example', 'vignette', 'testthat', 'test'),
+                    index_filepath='$(CORPUS_INDEX_ALL_FILEPATH)',
+                    data_dirpath='$(CORPUS_DATA_ALL_DIRPATH)');
+endef
+
+experiment-corpus-extract-clean:
+	rm -rf $(CORPUS_DIRPATH)
+
+experiment-corpus-extract-redo:
+	mkdir -p $(CORPUS_INDEX_DIRPATH)
+	mkdir -p $(CORPUS_DATA_DIRPATH)
+	mkdir -p $(CORPUS_LOGS_DIRPATH)
+	$(XVFB_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(CODE_EXTRACT_CODE))" 2>&1 > $(CORPUS_LOGS_DIRPATH)/all.log
+
+experiment-corpus-extract-run: experiment-corpus-extract-clean \
+                               experiment-corpus-extract-redo
+
+experiment-corpus-sloc:
+
+experiment-corpus-determinism:
+
+################################################################################
+## Experiment: Profile
+################################################################################
+experiment-profile: experiment-profile-drive   \
+                    experiment-profile-trace   \
+                    experiment-profile-analyze
+
+experiment-profile-drive:
+
+experiment-profile-trace:
+
+################################################################################
+## Experiment: Remove
+################################################################################
+experiment-remove: experiment-remove-drive    \
+                   experiment-remove-trace    \
+                   experiment-remove-analyze
+
+experiment-remove-drive:
+
+experiment-remove-trace:
+
+################################################################################
+## Experiment: Report
+################################################################################
+experiment-report:
