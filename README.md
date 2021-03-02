@@ -3,9 +3,21 @@
 
 - experiment
 	- experiment-setup
-	 - experiment-setup-mirror
-	 - experiment-setup-untar
-	 - experiment-setup-install
+	 - experiment-setup-dockr
+	 - experiment-setup-r-dyntrace
+	 - experiment-setup-library
+     	- experiment-setup-library-mirror
+             - experiment-setup-library-mirror-cran
+             - experiment-setup-library-mirror-bioc
+     	- experiment-setup-library-extract
+     	- experiment-setup-library-install
+             - experiment-setup-library-mirror-cran
+             - experiment-setup-library-mirror-bioc
+     	- experiment-setup-library-snapshot # TODO
+     - experiment-setup-instrumentr
+     - experiment-setup-experimentr
+     - experiment-setup-lazr
+     - experiment-setup-strictr
 	
 	- experiment-corpus
 	  - experiment-corpus-extract
