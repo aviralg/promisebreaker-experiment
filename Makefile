@@ -114,6 +114,13 @@ define dockr_bash
 docker run $(DOCKR_RUN_ARGS) dockr bash -e ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
 
+
+################################################################################
+## logs
+################################################################################
+
+LOGS_DIRPATH := $(PROJECT_DIRPATH)/logs
+
 ################################################################################
 ## dependency
 ################################################################################
@@ -122,12 +129,12 @@ DEPENDENCY_DIRPATH := $(PROJECT_DIRPATH)/dependency
 LOGS_DEPENDENCY_DIRPATH := $(LOGS_DIRPATH)/dependency
 
 dependency: dependency-dockr       \
-       dependency-r-dyntrace  \
-       dependency-library     \
-       dependency-instrumentr \
-       dependency-experimentr \
-       dependency-lazr        \
-       dependency-strictr
+            dependency-r-dyntrace  \
+            dependency-library     \
+            dependency-instrumentr \
+            dependency-experimentr \
+            dependency-lazr        \
+            dependency-strictr
 
 ################################################################################
 ## dependency/dockr
@@ -418,7 +425,6 @@ dependency-strictr:
 ################################################################################
 
 EXPERIMENT_DIRPATH := $(PROJECT_DIRPATH)/experiment
-LOGS_DIRPATH := $(PROJECT_DIRPATH)/logs
 
 experiment: experiment-corpus		\
             experiment-profile	\
