@@ -105,12 +105,11 @@ endef
 
 # https://gist.github.com/nicferrier/2277987
 define clonepull
-if [ ! -d ${3}/.git ]                 \
-then                                  \
-    git clone --branch ${1} ${2} ${3} \
-else                                  \
-    cd ${3} && git pull ${3}          \
-fi
+if [ ! -d ${3}/.git ]; then            \
+    git clone --branch ${1} ${2} ${3}; \
+else                                   \
+    cd ${3} && git pull;               \
+fi;
 endef
 
 ################################################################################
