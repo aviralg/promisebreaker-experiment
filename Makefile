@@ -96,7 +96,74 @@ docker-shell:
 	       strictr                                    \
 	       fish
 
-mirror-cran:
+
+extract-package-source:
+
+define newline
+
+
+endef
+
+################################################################################
+## experiment
+################################################################################
+experiment: experiment-setup		\
+            experiment-corpus		\
+            experiment-profile	\
+            experiment-remove		\
+            experiment-analyze
+
+
+################################################################################
+## experiment/setup
+################################################################################
+experiment-setup: experiment-setup-docker        \
+                  experiment-setup-r-dyntrace    \
+                  experiment-setup-instrumentr   \
+                  experiment-setup-experimentr   \
+                  experiment-setup-repository    \
+                  experiment-setup-dependencies
+
+
+################################################################################
+## experiment/setup/docker
+################################################################################
+experiment-setup-docker: experiment-setup-docker-download \
+                         experiment-setup-docker-build
+
+experiment-setup-docker-download:
+	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
+	git clone $(PROMISEBREAKER_DOCKER_GIT_URL) $(EXPERIMENT_SETUP_DOCKER_DIRPATH)
+
+experiment-setup-docker-build:
+	docker build                              \
+	       --build-arg USER=$(USER)           \
+	       --build-arg UID=$(UID)             \
+	       --build-arg GID=$(GID)             \
+	       --build-arg PASSWORD=$(PASSWORD)   \
+	       --tag strictr                      \
+	       $(EXPERIMENT_SETUP_DOCKER_DIRPATH)
+
+experiment-setup-docker-download:
+	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
+	git clone $(PROMISEBREAKER_DOCKER_GIT_URL) $(EXPERIMENT_SETUP_DOCKER_DIRPATH)
+
+################################################################################
+## experiment/setup/r-dyntrace
+################################################################################
+
+################################################################################
+## experiment/setup/repository
+################################################################################
+experiment-setup-repository: experiment-setup-repository-mirror  \
+                             experiment-setup-repository-untar   \
+                             experiment-setup-repository-install \
+                             experiment-setup-repository-snapshot
+
+experiment-setup-repository-mirror: experiment-setup-repository-mirror-cran  \
+                                    experiment-setup-repository-mirror-bioc
+
+experiment-setup-repository-mirror-cran:
 	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)
 	@mkdir -p $(PACKAGE_LIB_DIRPATH)
 	@mkdir -p $(PACKAGE_SRC_DIRPATH)
@@ -114,51 +181,51 @@ mirror-cran:
 	             cran.r-project.org::CRAN $(PACKAGE_MIRROR_DIRPATH)/cran \
 	             2>&1 | $(TEE) $(TEE_FLAGS) $(PACKAGE_LOG_DIRPATH)/cran-mirror.log
 
-mirror-bioc:
+experiment-setup-repository-mirror-bioc:
 	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)
 	@mkdir -p $(PACKAGE_LIB_DIRPATH)
 	@mkdir -p $(PACKAGE_SRC_DIRPATH)
 	@mkdir -p $(PACKAGE_LOG_DIRPATH)
 	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)/bioconductor/release
-	rsync -zrtlv --delete \
-	             --include '/bioc/' \
-	             --include '/bioc/REPOSITORY' \
-	             --include '/bioc/SYMBOLS' \
-	             --include '/bioc/VIEWS' \
-	             --include '/bioc/src/' \
-	             --include '/bioc/src/contrib/' \
-	             --include '/bioc/src/contrib/**' \
-	             --exclude '/bioc/src/contrib/Archive/**' \
-	             --include '/data/' \
-	             --include '/data/experiment/' \
-	             --include '/bioc/experiment/REPOSITORY' \
-	             --include '/bioc/experiment/SYMBOLS' \
-	             --include '/bioc/experiment/VIEWS' \
-	             --include '/data/experiment/src/' \
-	             --include '/data/experiment/src/contrib/' \
-	             --include '/data/experiment/src/contrib/**' \
-	             --exclude '/data/experiment/src/contrib/Archive/**' \
-	             --include '/data/annotation/' \
-	             --include '/bioc/annotation/REPOSITORY' \
-	             --include '/bioc/annotation/SYMBOLS' \
-	             --include '/bioc/annotation/VIEWS' \
-	             --include '/data/annotation/src/' \
-	             --include '/data/annotation/src/contrib/' \
-	             --include '/data/annotation/src/contrib/**' \
-	             --exclude '/data/annotation/src/contrib/Archive/**' \
-	             --include '/workflows/' \
-	             --include '/workflows/REPOSITORY' \
-	             --include '/workflows/SYMBOLS' \
-	             --include '/workflows/VIEWS' \
-	             --include '/workflows/src/' \
-	             --include '/workflows/src/contrib/' \
-	             --include '/workflows/src/contrib/**' \
-	             --exclude '/workflows/src/contrib/Archive/**' \
-	             --exclude '/**' \
-	             master.bioconductor.org::release $(PACKAGE_MIRROR_DIRPATH)/bioconductor/release \
+	rsync -zrtlv --delete																																					\
+	             --include '/bioc/'																																\
+	             --include '/bioc/REPOSITORY'																											\
+	             --include '/bioc/SYMBOLS'																												\
+	             --include '/bioc/VIEWS'																													\
+	             --include '/bioc/src/'																														\
+	             --include '/bioc/src/contrib/'																										\
+	             --include '/bioc/src/contrib/**'																									\
+	             --exclude '/bioc/src/contrib/Archive/**'																					\
+	             --include '/data/'																																\
+	             --include '/data/experiment/'																										\
+	             --include '/bioc/experiment/REPOSITORY'																					\
+	             --include '/bioc/experiment/SYMBOLS'																							\
+	             --include '/bioc/experiment/VIEWS'																								\
+	             --include '/data/experiment/src/'																								\
+	             --include '/data/experiment/src/contrib/'																				\
+	             --include '/data/experiment/src/contrib/**'																			\
+	             --exclude '/data/experiment/src/contrib/Archive/**'															\
+	             --include '/data/annotation/'																										\
+	             --include '/bioc/annotation/REPOSITORY'																					\
+	             --include '/bioc/annotation/SYMBOLS'																							\
+	             --include '/bioc/annotation/VIEWS'																								\
+	             --include '/data/annotation/src/'																								\
+	             --include '/data/annotation/src/contrib/'																				\
+	             --include '/data/annotation/src/contrib/**'																			\
+	             --exclude '/data/annotation/src/contrib/Archive/**'															\
+	             --include '/workflows/'																													\
+	             --include '/workflows/REPOSITORY'																								\
+	             --include '/workflows/SYMBOLS'																										\
+	             --include '/workflows/VIEWS'																											\
+	             --include '/workflows/src/'																											\
+	             --include '/workflows/src/contrib/'																							\
+	             --include '/workflows/src/contrib/**'																						\
+	             --exclude '/workflows/src/contrib/Archive/**'																		\
+	             --exclude '/**'																																	\
+	             master.bioconductor.org::release $(PACKAGE_MIRROR_DIRPATH)/bioconductor/release	\
 	             2>&1 | $(TEE) $(TEE_FLAGS) $(PACKAGE_LOG_DIRPATH)/bioc-mirror.log
 
-extract-package-source:
+experiment-setup-repository-untar:
 	$(RM) -r $(PACKAGE_SRC_DIRPATH)/*
 	find $(PACKAGE_MIRROR_DIRPATH)/cran/src/contrib                           \
 	     $(PACKAGE_MIRROR_DIRPATH)/bioconductor/release/bioc/src/contrib      \
@@ -168,10 +235,8 @@ extract-package-source:
 	     -execdir tar -xvf '{}'                                               \
 	     -C $(PACKAGE_SRC_DIRPATH) \;
 
-define newline
-
-
-endef
+experiment-setup-repository-install: experiment-setup-repository-install-cran \
+                                     experiment-setup-repository-install-bioc
 
 define INSTALL_CRAN_PACKAGES_CODE
 options(repos = 'file://$(PACKAGE_MIRROR_DIRPATH)/cran');
@@ -192,7 +257,7 @@ install.packages(packages,
                                   'Enhances'));
 endef
 
-install-cran: mirror-cran
+experiment-setup-repository-install-cran:
 	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)
 	@mkdir -p $(PACKAGE_LIB_DIRPATH)
 	@mkdir -p $(PACKAGE_SRC_DIRPATH)
@@ -221,7 +286,7 @@ install(packages,
                          'Enhances'));
 endef
 
-install-bioc: mirror-bioc
+experiment-setup-repository-install-bioc:
 	@mkdir -p $(PACKAGE_MIRROR_DIRPATH)
 	@mkdir -p $(PACKAGE_LIB_DIRPATH)
 	@mkdir -p $(PACKAGE_SRC_DIRPATH)
@@ -233,31 +298,16 @@ install-bioc: mirror-bioc
 	$(XVFB_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_BIOC_PACKAGES_CODE))" 2>&1 > $(PACKAGE_LOG_DIRPATH)/bioc.log
 	$(MV) -f *.out $(PACKAGE_LOG_DIRPATH) 2> /dev/null
 
-# Experiments
 
-################################################################################
-## Experiments
-################################################################################
-experiment: experiment-setup		\
-            experiment-corpus		\
-            experiment-profile	\
-            experiment-remove		\
-            experiment-analyze
+experiment-setup-repository-snapshot:
+	@echo TODO
 
-
-################################################################################
-## Experiment: Setup
-################################################################################
-experiment-setup: experiment-setup-mirror  \
-                  experiment-setup-untar   \
-                  experiment-setup-install \
-                  experiment-setup-version
-
-experiment-setup-mirror:
-experiment-setup-untar:
-experiment-setup-install:
-experiment-setup-version:
-
+experiment-setup-dependency:
+	git clone --branch $(R_DYNTRACE_BRANCH) $(R_DYNTRACE_GIT_URL) $(EXPERIMENT_SETUP_DEPENDENCY_R_DYNTRACE_DIRPATH)
+	git clone --branch $(INSTRUMENTR_BRANCH) $(INSTRUMENTR_GIT_URL) $(EXPERIMENT_SETUP_DEPENDENCY_INSTRUMENTR_DIRPATH)
+	git clone --branch $(EXPERIMENTR_BRANCH) $(EXPERIMENTR_GIT_URL) $(EXPERIMENT_SETUP_DEPENDENCY_EXPERIMENTR_DIRPATH)
+	git clone --branch $(LAZR_BRANCH) $(LAZR_GIT_URL) $(EXPERIMENT_SETUP_DEPENDENCY_LAZR_DIRPATH)
+	git clone --branch $(STRICTR_BRANCH) $(STRICTR_GIT_URL) $(EXPERIMENT_SETUP_DEPENDENCY_STRICTR_DIRPATH)
 
 ################################################################################
 ## Experiment: Corpus
