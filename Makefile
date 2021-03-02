@@ -16,7 +16,7 @@ GID := $(shell id -g)
 PASSWORD := $(USER)
 R_DYNTRACE := $(PROJECT_DIRPATH)R-dyntrace/bin/R
 DOCKR_RUN_ARGS := --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix" -v $(PROJECT_DIRPATH):$(PROJECT_DIRPATH) --publish=$(PORT)
-DOCKR_RUN := docker run $(DOCKR_RUN_ARGS) dockr bash
+DOCKR_RUN := docker run $(DOCKR_RUN_ARGS) dockr bash -c
 ################################################################################
 ## Applications
 ################################################################################
@@ -172,7 +172,7 @@ experiment-setup-r-dyntrace:
 	mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	mkdir -p $(LOGS_SETUP_R_DYNTRACE_DIRPATH)
 	$(call clonepull, $(R_DYNTRACE_BRANCH), $(R_DYNTRACE_GIT_URL), $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH), $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/clone.log)
-	$(DOCKR_RUN) cd $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH) && ./build 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/build.log
+	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH) && ./build 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/build.log'
 
 ################################################################################
 ## experiment/setup/library
@@ -321,7 +321,7 @@ experiment-setup-library-install-cran:
 	@mkdir -p $(EXPERIMENT_SETUP_LIBRARY_INSTALL_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_LIBRARY_INSTALL_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_LIBRARY_INSTALL_CRAN_DIRPATH)
-	$(DOCKR_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_CRAN_PACKAGES_CODE))" 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_INSTALL_CRAN_DIRPATH)/install.log
+	$(DOCKR_RUN) '$(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_CRAN_PACKAGES_CODE))" 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_INSTALL_CRAN_DIRPATH)/install.log'
 	$(MV) -f *.out $(LOGS_SETUP_LIBRARY_INSTALL_CRAN_DIRPATH) 2> /dev/null
 
 define INSTALL_BIOC_PACKAGES_CODE
@@ -354,7 +354,7 @@ experiment-setup-repository-install-bioc:
 	mkdir -p $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC)/packages
 	ln -sfn $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC)/release $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC)/packages/3.12
 
-	$(DOCKR_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_BIOC_PACKAGES_CODE))" 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_INSTALL_BIOC_DIRPATH)/install.log
+	$(DOCKR_RUN) '$(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_BIOC_PACKAGES_CODE))" 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_INSTALL_BIOC_DIRPATH)/install.log'
 	$(MV) -f *.out $(LOGS_SETUP_LIBRARY_INSTALL_BIOC_DIRPATH) 2> /dev/null
 
 experiment-setup-repository-snapshot:
@@ -373,7 +373,7 @@ experiment-setup-instrumentr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_INSTRUMENTR_DIRPATH)
 	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH), $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/clone.log)
-	$(DOCKR_RUN) cd $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/install.log
+	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/install.log'
 
 ################################################################################
 ## experiment/setup/experimentr
@@ -388,7 +388,7 @@ experiment-setup-experimentr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_EXPERIMENTR_DIRPATH)
 	$(call clonepull, $(EXPERIMENTR_BRANCH), $(EXPERIMENTR_GIT_URL), $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH), $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/clone.log)
-	$(DOCKR_RUN) cd $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/install.log
+	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/install.log'
 
 ################################################################################
 ## experiment/setup/lazr
@@ -403,7 +403,7 @@ experiment-setup-lazr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_LAZR_DIRPATH)
 	$(call clonepull,$(LAZR_BRANCH), $(LAZR_GIT_URL), $(EXPERIMENT_SETUP_LAZR_DIRPATH), $(LOGS_SETUP_LAZR_DIRPATH)/clone.log)
-	$(DOCKR_RUN) cd $(EXPERIMENT_SETUP_LAZR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LAZR_DIRPATH)/install.log
+	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_LAZR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LAZR_DIRPATH)/install.log'
 
 ################################################################################
 ## experiment/setup/strictr
@@ -418,7 +418,8 @@ experiment-setup-strictr:
 	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
 	@mkdir -p $(LOGS_SETUP_STRICTR_DIRPATH)
 	$(call clonepull, $(STRICTR_BRANCH), $(STRICTR_GIT_URL), $(EXPERIMENT_SETUP_STRICTR_DIRPATH), $(LOGS_SETUP_STRICTR_DIRPATH)/clone.log)
-	$(DOCKR_RUN) cd $(EXPERIMENT_SETUP_STRICTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_STRICTR_DIRPATH)/install.log
+	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_STRICTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_STRICTR_DIRPATH)/install.log'
+
 
 
 ################################################################################
