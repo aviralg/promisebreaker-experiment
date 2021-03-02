@@ -425,6 +425,10 @@ experiment-setup-strictr:
 ################################################################################
 ## experiment/corpus
 ################################################################################
+
+EXPERIMENT_CORPUS_DIRPATH := $(EXPERIMENT_DIRPATH)/corpus
+LOGS_CORPUS_DIRPATH := $(LOGS_DIRPATH)/corpus
+
 experiment-corpus: experiment-corpus-extract      \
                    experiment-corpus-sloc         \
                    experiment-corpus-determinism
@@ -433,23 +437,40 @@ define CODE_EXTRACT_CODE
 library(experimentr);
 res <- extract_code(installed.packages()[,1],
                     type=c('example', 'vignette', 'testthat', 'test'),
-                    index_filepath='$(CORPUS_INDEX_ALL_FILEPATH)',
-                    data_dirpath='$(CORPUS_DATA_ALL_DIRPATH)');
+                    index_filepath='$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)',
+                    data_dirpath='$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)');
 endef
 
-experiment-corpus-extract-clean:
-	rm -rf $(CORPUS_DIRPATH)
+EXPERIMENT_CORPUS_EXTRACT_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/extract
+EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH := $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/index.fst
+EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH := $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/programs
 
-experiment-corpus-extract-redo:
-	mkdir -p $(CORPUS_INDEX_DIRPATH)
-	mkdir -p $(CORPUS_DATA_DIRPATH)
-	mkdir -p $(CORPUS_LOGS_DIRPATH)
-	$(XVFB_RUN) $(R_DYNTRACE) -e "$(subst $(newline), ,$(CODE_EXTRACT_CODE))" 2>&1 > $(CORPUS_LOGS_DIRPATH)/all.log
+LOGS_CORPUS_EXTRACT_DIRPATH := $(LOGS_CORPUS_DIRPATH)/extract
 
-experiment-corpus-extract-run: experiment-corpus-extract-clean \
-                               experiment-corpus-extract-redo
+experiment-corpus-extract:
+	mkdir -p $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)
+	mkdir -p $(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)
+	mkdir -p $(LOGS_CORPUS_EXTRACT_DIRPATH)
+	$(DOCKR_RUN) '$(R_DYNTRACE_BIN) -e "$(subst $(newline), ,$(CODE_EXTRACT_CODE))" 2>&1 > $(LOGS_CORPUS_EXTRACT_DIRPATH)/extract.log'
 
+define CODE_EXTRACT_CODE
+library(experimentr);
+res <- extract_code(installed.packages()[,1],
+                    type=c('example', 'vignette', 'testthat', 'test'),
+                    index_filepath='$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)',
+                    data_dirpath='$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)');
+endef
+
+EXPERIMENT_CORPUS_SLOC_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/sloc
+EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst
+EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst
+
+LOGS_CORPUS_SLOC_DIRPATH := $(LOGS_CORPUS_DIRPATH)/sloc
 experiment-corpus-sloc:
+	mkdir -p $(EXPERIMENT_CORPUS_SLOC_DIRPATH)
+	mkdir -p $(LOGS_CORPUS_SLOC_DIRPATH)
+	$(DOCKR_RUN) '$(R_DYNTRACE_BIN) -e "$(subst $(newline), ,$(CORPUS_SLOC))" 2>&1 > $(LOGS_CORPUS_SLOC_DIRPATH)/sloc.log'
+
 
 experiment-corpus-determinism:
 
