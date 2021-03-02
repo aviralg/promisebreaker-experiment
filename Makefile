@@ -8,7 +8,7 @@ PROJECT_DIRPATH := $(dir $(MAKEFILE_PATH))
 ################################################################################
 ## docker build args
 ################################################################################
-LIBRARY_DIRPATH := $(EXPERIMENT_SETUP_LIBRARY_INSTALL_DIRPATH)
+LIBRARY_DIRPATH := $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
 PORT := 5000:80
 USER := $(USER)
 UID := $(shell id -u)
@@ -16,7 +16,7 @@ GID := $(shell id -g)
 PASSWORD := $(USER)
 R_DYNTRACE := $(PROJECT_DIRPATH)R-dyntrace/bin/R
 DOCKR_RUN_ARGS := --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix" -v $(PROJECT_DIRPATH):$(PROJECT_DIRPATH) --publish=$(PORT)
-DOCKR_RUN := docker run $(DOCKR_RUN_ARGS) dockr bash -c
+
 ################################################################################
 ## Applications
 ################################################################################
@@ -52,7 +52,6 @@ PACKAGE_TEST_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/tests
 PACKAGE_EXAMPLE_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/examples
 PACKAGE_VIGNETTE_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/doc
 PACKAGE_LOG_DIRPATH := $(PACKAGE_SETUP_DIRPATH)/log
-
 
 ################################################################################
 ## corpus
@@ -107,104 +106,98 @@ else                                                                   \
 fi;
 endef
 
-################################################################################
-## experiment
-################################################################################
+define dockr_rdyntrace
+docker run $(DOCKR_RUN_ARGS) dockr $(R_DYNTRACE_BIN) -e ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
+endef
 
-EXPERIMENT_DIRPATH := $(PROJECT_DIRPATH)/experiment
-LOGS_DIRPATH := $(PROJECT_DIRPATH)/logs
-
-experiment: experiment-setup		\
-            experiment-corpus		\
-            experiment-profile	\
-            experiment-remove		\
-            experiment-analyze
-
+define dockr_bash
+docker run $(DOCKR_RUN_ARGS) dockr bash -e ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
+endef
 
 ################################################################################
-## experiment/setup
+## dependency
 ################################################################################
 
-EXPERIMENT_SETUP_DIRPATH := $(EXPERIMENT_DIRPATH)/setup
-LOGS_SETUP_DIRPATH := $(LOGS_DIRPATH)/setup
+DEPENDENCY_DIRPATH := $(PROJECT_DIRPATH)/dependency
+LOGS_DEPENDENCY_DIRPATH := $(LOGS_DIRPATH)/dependency
 
-experiment-setup: experiment-setup-dockr       \
-                  experiment-setup-r-dyntrace  \
-                  experiment-setup-library     \
-                  experiment-setup-instrumentr \
-                  experiment-setup-experimentr \
-                  experiment-setup-lazr        \
-                  experiment-setup-strictr
+dependency: dependency-dockr       \
+       dependency-r-dyntrace  \
+       dependency-library     \
+       dependency-instrumentr \
+       dependency-experimentr \
+       dependency-lazr        \
+       dependency-strictr
 
 ################################################################################
-## experiment/setup/dockr
+## dependency/dockr
 ################################################################################
 
 DOCKR_BRANCH := master
 DOCKR_GIT_URL := $(AVIRALG_GIT_URL)/dockr.git
-EXPERIMENT_SETUP_DOCKR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/dockr
-LOGS_SETUP_DOCKR_DIRPATH := $(LOGS_SETUP_DIRPATH)/dockr/
+DEPENDENCY_DOCKR_DIRPATH := $(DEPENDENCY_DIRPATH)/dockr
+LOGS_DEPENDENCY_DOCKR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/dockr/
 
-experiment-setup-dockr:
-	mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	mkdir -p $(LOGS_SETUP_DIRPATH)
-	mkdir -p $(LOGS_SETUP_DOCKR_DIRPATH)
-	$(call clonepull, $(DOCKR_BRANCH), $(DOCKR_GIT_URL), $(EXPERIMENT_SETUP_DOCKR_DIRPATH), $(LOGS_SETUP_DOCKR_DIRPATH)/clone.log)
+dependency-dockr:
+	mkdir -p $(DEPENDENCY_DIRPATH)
+	mkdir -p $(LOGS_DEPENDENCY_DIRPATH)
+	mkdir -p $(LOGS_DEPENDENCY_DOCKR_DIRPATH)
+	$(call clonepull, $(DOCKR_BRANCH), $(DOCKR_GIT_URL), $(DEPENDENCY_DOCKR_DIRPATH), $(LOGS_DEPENDENCY_DOCKR_DIRPATH)/clone.log)
 	docker build                              \
 	       --build-arg USER=$(USER)           \
 	       --build-arg UID=$(UID)             \
 	       --build-arg GID=$(GID)             \
 	       --build-arg PASSWORD=$(PASSWORD)   \
 	       --tag dockr                        \
-	       $(EXPERIMENT_SETUP_DOCKR_DIRPATH) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_DOCKR_DIRPATH)/build.log
+	       $(DEPENDENCY_DOCKR_DIRPATH) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_DEPENDENCY_DOCKR_DIRPATH)/build.log
 
 ################################################################################
-## experiment/setup/r-dyntrace
+## dependency/r-dyntrace
 ################################################################################
 
 R_DYNTRACE_BRANCH := r-4.0.2
 R_DYNTRACE_GIT_URL := $(PRL_PRG_GIT_URL)/R-dyntrace.git
-EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/R-dyntrace
-LOGS_SETUP_R_DYNTRACE_DIRPATH := $(LOGS_SETUP_DIRPATH)/R-dyntrace
-R_DYNTRACE_BIN := $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH)/bin/R
+DEPENDENCY_R_DYNTRACE_DIRPATH := $(DEPENDENCY_DIRPATH)/R-dyntrace
+LOGS_DEPENDENCY_R_DYNTRACE_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/R-dyntrace
+R_DYNTRACE_BIN := $(DEPENDENCY_R_DYNTRACE_DIRPATH)/bin/R
 
-experiment-setup-r-dyntrace:
-	mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	mkdir -p $(LOGS_SETUP_R_DYNTRACE_DIRPATH)
-	$(call clonepull, $(R_DYNTRACE_BRANCH), $(R_DYNTRACE_GIT_URL), $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH), $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/clone.log)
-	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_R_DYNTRACE_DIRPATH) && ./build 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_R_DYNTRACE_DIRPATH)/build.log'
-
-################################################################################
-## experiment/setup/library
-################################################################################
-
-EXPERIMENT_SETUP_LIBRARY_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/library
-LOGS_SETUP_LIBRARY_DIRPATH := $(LOGS_SETUP_DIRPATH)/library
-
-experiment-setup-library: experiment-setup-library-mirror  \
-                          experiment-setup-library-extract \
-                          experiment-setup-library-install \
-                          experiment-setup-library-snapshot
+dependency-r-dyntrace:
+	mkdir -p $(DEPENDENCY_DIRPATH)
+	mkdir -p $(LOGS_DEPENDENCY_R_DYNTRACE_DIRPATH)
+	$(call clonepull, $(R_DYNTRACE_BRANCH), $(R_DYNTRACE_GIT_URL), $(DEPENDENCY_R_DYNTRACE_DIRPATH), $(LOGS_DEPENDENCY_R_DYNTRACE_DIRPATH)/clone.log)
+	$(call dockr_bash, 'cd $(DEPENDENCY_R_DYNTRACE_DIRPATH) && ./build', $(LOGS_DEPENDENCY_R_DYNTRACE_DIRPATH)/build.log)
 
 ################################################################################
-## experiment/setup/library/mirror
+## dependency/library
 ################################################################################
 
-EXPERIMENT_SETUP_LIBRARY_MIRROR_DIRPATH := $(EXPERIMENT_SETUP_LIBRARY_DIRPATH)/mirror
-LOGS_SETUP_LIBRARY_MIRROR_DIRPATH := $(LOGS_SETUP_LIBRARY_DIRPATH)/mirror
-experiment-setup-library-mirror: experiment-setup-library-mirror-cran  \
-                                 experiment-setup-library-mirror-bioc
+DEPENDENCY_LIBRARY_DIRPATH := $(DEPENDENCY_DIRPATH)/library
+LOGS_DEPENDENCY_LIBRARY_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/library
+
+dependency-library: dependency-library-mirror  \
+                          dependency-library-extract \
+                          dependency-library-install \
+                          dependency-library-snapshot
 
 ################################################################################
-## experiment/setup/library/mirror/cran
+## dependency/library/mirror
 ################################################################################
 
-EXPERIMENT_SETUP_LIBRARY_MIRROR_CRAN_DIRPATH := $(EXPERIMENT_SETUP_LIBRARY_MIRROR_DIRPATH)/cran
-LOGS_SETUP_LIBRARY_MIRROR_CRAN_DIRPATH := $(LOGS_SETUP_LIBRARY_MIRROR_DIRPATH)/cran
+DEPENDENCY_LIBRARY_MIRROR_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/mirror
+LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/mirror
+dependency-library-mirror: dependency-library-mirror-cran  \
+                                 dependency-library-mirror-bioc
 
-experiment-setup-library-mirror-cran:
-	@mkdir -p $(EXPERIMENT_SETUP_LIBRARY_MIRROR_CRAN_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_LIBRARY_MIRROR_CRAN_DIRPATH)
+################################################################################
+## dependency/library/mirror/cran
+################################################################################
+
+DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/cran
+LOGS_DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/cran
+
+dependency-library-mirror-cran:
+	@mkdir -p $(DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)
 	rsync -zrtlv --delete																																	\
 	             --include '/src'																													\
 	             --include '/src/contrib'																									\
@@ -213,21 +206,21 @@ experiment-setup-library-mirror-cran:
 	             --include '/src/contrib/Symlink'																					\
 	             --include '/src/contrib/Symlink/**'																			\
 	             --exclude '**'																														\
-	             cran.r-project.org::CRAN $(EXPERIMENT_SETUP_LIBRARY_MIRROR_CRAN_DIRPATH) \
-	             2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_MIRROR_CRAN_DIRPATH)/rsync.log
+	             cran.r-project.org::CRAN $(DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH) \
+	             2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)/rsync.log
 
 ################################################################################
-## experiment/setup/library/mirror/cran
+## dependency/library/mirror/cran
 ################################################################################
 
-EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC_DIRPATH := $(EXPERIMENT_SETUP_LIBRARY_MIRROR_DIRPATH)/bioc
-EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH := $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC_DIRPATH)/release
+DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/bioc
+DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)/release
 
-LOGS_SETUP_LIBRARY_MIRROR_BIOC_DIRPATH := $(LOGS_SETUP_LIBRARY_MIRROR_DIRPATH)/bioc
+LOGS_DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/bioc
 
-experiment-setup-library-mirror-bioc:
-	@mkdir -p $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_LIBRARY_MIRROR_BIOC_DIRPATH)
+dependency-library-mirror-bioc:
+	@mkdir -p $(DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)
 	rsync -zrtlv --delete																																									\
 	             --include '/bioc/'																																				\
 	             --include '/bioc/REPOSITORY'																															\
@@ -263,40 +256,40 @@ experiment-setup-library-mirror-bioc:
 	             --include '/workflows/src/contrib/**'																										\
 	             --exclude '/workflows/src/contrib/Archive/**'																						\
 	             --exclude '/**'																																					\
-	             master.bioconductor.org::release $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH) \
-	             2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_MIRROR_BIOC_DIRPATH)/rsync.log
+	             master.bioconductor.org::release $(DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH) \
+	             2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)/rsync.log
 
 ################################################################################
-## experiment/setup/library/extract
+## dependency/library/extract
 ################################################################################
 
-EXPERIMENT_SETUP_LIBRARY_EXTRACT_DIRPATH := $(EXPERIMENT_SETUP_LIBRARY_DIRPATH)/extract
-LOGS_SETUP_LIBRARY_EXTRACT_DIRPATH := $(LOGS_SETUP_LIBRARY_DIRPATH)/extract
+DEPENDENCY_LIBRARY_EXTRACT_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/extract
+LOGS_DEPENDENCY_LIBRARY_EXTRACT_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/extract
 
-experiment-setup-library-extract:
-	@mkdir -p $(EXPERIMENT_SETUP_LIBRARY_EXTRACT_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_LIBRARY_EXTRACT_DIRPATH)
-	find $(EXPERIMENT_SETUP_LIBRARY_MIRROR_CRAN_DIRPATH)/src/contrib               \
-	     $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH)/bioc/src/contrib  \
+dependency-library-extract:
+	@mkdir -p $(DEPENDENCY_LIBRARY_EXTRACT_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_EXTRACT_DIRPATH)
+	find $(DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)/src/contrib               \
+	     $(DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH)/bioc/src/contrib  \
 	     -maxdepth 1                                                               \
 	     -type f                                                                   \
 	     -name "*.tar.gz"                                                          \
 	     -execdir tar -xvf '{}'                                                    \
-	     -C $(EXPERIMENT_SETUP_LIBRARY_EXTRACT_DIRPATH) \; 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_EXTRACT_DIRPATH)/tar.log
+	     -C $(DEPENDENCY_LIBRARY_EXTRACT_DIRPATH) \; 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_DEPENDENCY_LIBRARY_EXTRACT_DIRPATH)/tar.log
 
 ################################################################################
-## experiment/setup/library/install
+## dependency/library/install
 ################################################################################
 
-EXPERIMENT_SETUP_LIBRARY_INSTALL_DIRPATH := $(EXPERIMENT_SETUP_LIBRARY_DIRPATH)/install
-LOGS_SETUP_LIBRARY_INSTALL_DIRPATH := $(LOGS_SETUP_LIBRARY_DIRPATH)/install
+DEPENDENCY_LIBRARY_INSTALL_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/install
+LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/install
 
-experiment-setup-library-install: experiment-setup-library-install-cran \
-                                  experiment-setup-library-install-bioc
+dependency-library-install: dependency-library-install-cran \
+                                  dependency-library-install-bioc
 
 define INSTALL_CRAN_PACKAGES_CODE
-options(repos       = 'file://$(EXPERIMENT_SETUP_LIBRARY_MIRROR_CRAN)');
-options(BioC_mirror = 'file://$(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC)');
+options(repos       = 'file://$(DEPENDENCY_LIBRARY_MIRROR_CRAN)');
+options(BioC_mirror = 'file://$(DEPENDENCY_LIBRARY_MIRROR_BIOC)');
 packages <- setdiff(available.packages()[,1], installed.packages()[,1]);
 cat('Installing', length(packages), 'packages with', $(CPU_COUNT), 'cpus\n');
 install.packages(packages,
@@ -315,18 +308,18 @@ endef
 
 
 
-LOGS_SETUP_LIBRARY_INSTALL_CRAN_DIRPATH := $(LOGS_SETUP_LIBRARY_INSTALL_DIRPATH)/cran
+LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)/cran
 
-experiment-setup-library-install-cran:
-	@mkdir -p $(EXPERIMENT_SETUP_LIBRARY_INSTALL_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_LIBRARY_INSTALL_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_LIBRARY_INSTALL_CRAN_DIRPATH)
-	$(DOCKR_RUN) '$(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_CRAN_PACKAGES_CODE))" 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_INSTALL_CRAN_DIRPATH)/install.log'
-	$(MV) -f *.out $(LOGS_SETUP_LIBRARY_INSTALL_CRAN_DIRPATH) 2> /dev/null
+dependency-library-install-cran:
+	@mkdir -p $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH)
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(INSTALL_CRAN_PACKAGES_CODE))", $(LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH)/install.log)
+	$(MV) -f *.out $(LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH) 2> /dev/null
 
 define INSTALL_BIOC_PACKAGES_CODE
-options(repos       = 'file://$(EXPERIMENT_SETUP_LIBRARY_MIRROR_CRAN)');
-options(BioC_mirror = 'file://$(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC)');
+options(repos       = 'file://$(DEPENDENCY_LIBRARY_MIRROR_CRAN)');
+options(BioC_mirror = 'file://$(DEPENDENCY_LIBRARY_MIRROR_BIOC)');
 library(BiocManager);
 packages <- setdiff(available(), installed.packages()[,1]);
 cat('Installing', length(packages), 'packages with', $(CPU_COUNT), 'cpus\n');
@@ -344,83 +337,93 @@ install(packages,
                          'Enhances'));
 endef
 
-LOGS_SETUP_LIBRARY_INSTALL_BIOC_DIRPATH := $(LOGS_SETUP_LIBRARY_INSTALL_DIRPATH)/bioc
+LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)/bioc
 
-experiment-setup-repository-install-bioc:
-	@mkdir -p $(EXPERIMENT_SETUP_LIBRARY_INSTALL_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_LIBRARY_INSTALL_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_LIBRARY_INSTALL_BIOC_DIRPATH)
+dependency-repository-install-bioc:
+	@mkdir -p $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH)
 
-	mkdir -p $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC)/packages
-	ln -sfn $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC)/release $(EXPERIMENT_SETUP_LIBRARY_MIRROR_BIOC)/packages/3.12
+	mkdir -p $(DEPENDENCY_LIBRARY_MIRROR_BIOC)/packages
+	ln -sfn $(DEPENDENCY_LIBRARY_MIRROR_BIOC)/release $(DEPENDENCY_LIBRARY_MIRROR_BIOC)/packages/3.12
 
-	$(DOCKR_RUN) '$(R_DYNTRACE) -e "$(subst $(newline), ,$(INSTALL_BIOC_PACKAGES_CODE))" 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LIBRARY_INSTALL_BIOC_DIRPATH)/install.log'
-	$(MV) -f *.out $(LOGS_SETUP_LIBRARY_INSTALL_BIOC_DIRPATH) 2> /dev/null
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(INSTALL_BIOC_PACKAGES_CODE))", $(LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH)/install.log)
+	$(MV) -f *.out $(LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH) 2> /dev/null
 
-experiment-setup-repository-snapshot:
+dependency-repository-snapshot:
 	@echo TODO
 
 ################################################################################
-## experiment/setup/instrumentr
+## dependency/instrumentr
 ################################################################################
 
 INSTRUMENTR_BRANCH := c-api
 INSTRUMENTR_GIT_URL := $(PRL_PRG_GIT_URL)/instrumentr.git
-EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/instrumentr
-LOGS_SETUP_INSTRUMENTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/instrumentr
+DEPENDENCY_INSTRUMENTR_DIRPATH := $(DEPENDENCY_DIRPATH)/instrumentr
+LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/instrumentr
 
-experiment-setup-instrumentr:
-	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_INSTRUMENTR_DIRPATH)
-	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH), $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/clone.log)
-	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_INSTRUMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_INSTRUMENTR_DIRPATH)/install.log'
+dependency-instrumentr:
+	@mkdir -p $(DEPENDENCY_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)
+	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(DEPENDENCY_INSTRUMENTR_DIRPATH), $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/clone.log)
+	$(call dockr_rdyntrace, 'make --directory=$(DEPENDENCY_INSTRUMENTR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/install.log)
 
 ################################################################################
-## experiment/setup/experimentr
+## dependency/experimentr
 ################################################################################
 
 EXPERIMENTR_BRANCH := master
 EXPERIMENTR_GIT_URL := $(AVIRALG_GIT_URL)/experimentr.git
-EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/experimentr
-LOGS_SETUP_EXPERIMENTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/experimentr
+DEPENDENCY_EXPERIMENTR_DIRPATH := $(DEPENDENCY_DIRPATH)/experimentr
+LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/experimentr
 
-experiment-setup-experimentr:
-	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_EXPERIMENTR_DIRPATH)
-	$(call clonepull, $(EXPERIMENTR_BRANCH), $(EXPERIMENTR_GIT_URL), $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH), $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/clone.log)
-	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_EXPERIMENTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_EXPERIMENTR_DIRPATH)/install.log'
+dependency-experimentr:
+	@mkdir -p $(DEPENDENCY_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH)
+	$(call clonepull, $(EXPERIMENTR_BRANCH), $(EXPERIMENTR_GIT_URL), $(DEPENDENCY_EXPERIMENTR_DIRPATH), $(LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH)/clone.log)
+	$(call dockr_bash, 'make --directory=$(DEPENDENCY_EXPERIMENTR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH)/install.log)
 
 ################################################################################
-## experiment/setup/lazr
+## dependency/lazr
 ################################################################################
 
 LAZR_BRANCH := master
 LAZR_GIT_URL := $(AVIRALG_GIT_URL)/lazr.git
-EXPERIMENT_SETUP_LAZR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/lazr
-LOGS_SETUP_LAZR_DIRPATH := $(LOGS_SETUP_DIRPATH)/lazr
+DEPENDENCY_LAZR_DIRPATH := $(DEPENDENCY_DIRPATH)/lazr
+LOGS_DEPENDENCY_LAZR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/lazr
 
-experiment-setup-lazr:
-	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_LAZR_DIRPATH)
-	$(call clonepull,$(LAZR_BRANCH), $(LAZR_GIT_URL), $(EXPERIMENT_SETUP_LAZR_DIRPATH), $(LOGS_SETUP_LAZR_DIRPATH)/clone.log)
-	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_LAZR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_LAZR_DIRPATH)/install.log'
+dependency-lazr:
+	@mkdir -p $(DEPENDENCY_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_LAZR_DIRPATH)
+	$(call clonepull,$(LAZR_BRANCH), $(LAZR_GIT_URL), $(DEPENDENCY_LAZR_DIRPATH), $(LOGS_DEPENDENCY_LAZR_DIRPATH)/clone.log)
+	$(call dockr_bash, 'make --directory=$(DEPENDENCY_LAZR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_LAZR_DIRPATH)/install.log)
 
 ################################################################################
-## experiment/setup/strictr
+## dependency/strictr
 ################################################################################
 
 STRICTR_BRANCH := master
 STRICTR_GIT_URL := $(AVIRALG_GIT_URL)/strictr.git
-EXPERIMENT_SETUP_STRICTR_DIRPATH := $(EXPERIMENT_SETUP_DIRPATH)/strictr
-LOGS_SETUP_STRICTR_DIRPATH := $(LOGS_SETUP_DIRPATH)/strictr
+DEPENDENCY_STRICTR_DIRPATH := $(DEPENDENCY_DIRPATH)/strictr
+LOGS_DEPENDENCY_STRICTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/strictr
 
-experiment-setup-strictr:
-	@mkdir -p $(EXPERIMENT_SETUP_DIRPATH)
-	@mkdir -p $(LOGS_SETUP_STRICTR_DIRPATH)
-	$(call clonepull, $(STRICTR_BRANCH), $(STRICTR_GIT_URL), $(EXPERIMENT_SETUP_STRICTR_DIRPATH), $(LOGS_SETUP_STRICTR_DIRPATH)/clone.log)
-	$(DOCKR_RUN) 'cd $(EXPERIMENT_SETUP_STRICTR_DIRPATH) && make R=$(R_DYNTRACE_BIN) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_SETUP_STRICTR_DIRPATH)/install.log'
+dependency-strictr:
+	@mkdir -p $(DEPENDENCY_DIRPATH)
+	@mkdir -p $(LOGS_DEPENDENCY_STRICTR_DIRPATH)
+	$(call clonepull, $(STRICTR_BRANCH), $(STRICTR_GIT_URL), $(DEPENDENCY_STRICTR_DIRPATH), $(LOGS_DEPENDENCY_STRICTR_DIRPATH)/clone.log)
+	$(call dockr_bash, 'make --directory=$(DEPENDENCY_STRICTR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_STRICTR_DIRPATH)/install.log)
 
+################################################################################
+## experiment
+################################################################################
 
+EXPERIMENT_DIRPATH := $(PROJECT_DIRPATH)/experiment
+LOGS_DIRPATH := $(PROJECT_DIRPATH)/logs
+
+experiment: experiment-corpus		\
+            experiment-profile	\
+            experiment-remove		\
+            experiment-analyze
 
 ################################################################################
 ## experiment/corpus
@@ -451,7 +454,7 @@ experiment-corpus-extract:
 	mkdir -p $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)
 	mkdir -p $(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)
 	mkdir -p $(LOGS_CORPUS_EXTRACT_DIRPATH)
-	$(DOCKR_RUN) '$(R_DYNTRACE_BIN) -e "$(subst $(newline), ,$(CODE_EXTRACT_CODE))" 2>&1 > $(LOGS_CORPUS_EXTRACT_DIRPATH)/extract.log'
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CODE_EXTRACT_CODE))", $(LOGS_CORPUS_EXTRACT_DIRPATH)/extract.log)
 
 define CODE_EXTRACT_CODE
 library(experimentr);
@@ -469,7 +472,7 @@ LOGS_CORPUS_SLOC_DIRPATH := $(LOGS_CORPUS_DIRPATH)/sloc
 experiment-corpus-sloc:
 	mkdir -p $(EXPERIMENT_CORPUS_SLOC_DIRPATH)
 	mkdir -p $(LOGS_CORPUS_SLOC_DIRPATH)
-	$(DOCKR_RUN) '$(R_DYNTRACE_BIN) -e "$(subst $(newline), ,$(CORPUS_SLOC))" 2>&1 > $(LOGS_CORPUS_SLOC_DIRPATH)/sloc.log'
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_SLOC))", $(LOGS_CORPUS_SLOC_DIRPATH)/sloc.log)
 
 
 experiment-corpus-determinism:
