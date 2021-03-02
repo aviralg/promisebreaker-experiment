@@ -8,7 +8,7 @@ PROJECT_DIRPATH := $(dir $(MAKEFILE_PATH))
 ################################################################################
 ## docker build args
 ################################################################################
-LIBRARY_DIRPATH := $(PROJECT_DIRPATH)library
+LIBRARY_DIRPATH := $(EXPERIMENT_SETUP_LIBRARY_INSTALL_DIRPATH)
 PORT := 5000:80
 USER := $(USER)
 UID := $(shell id -u)
