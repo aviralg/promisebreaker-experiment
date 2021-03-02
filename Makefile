@@ -16,7 +16,7 @@ GID := $(shell id -g)
 PASSWORD := $(USER)
 R_DYNTRACE := $(PROJECT_DIRPATH)R-dyntrace/bin/R
 DOCKR_RUN_ARGS := --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix" -v $(PROJECT_DIRPATH):$(PROJECT_DIRPATH) --publish=$(PORT)
-DOCKR_RUN := docker run $(DOCKR_RUN_ARGS) dockr
+DOCKR_RUN := docker run $(DOCKR_RUN_ARGS) dockr bash
 ################################################################################
 ## Applications
 ################################################################################
