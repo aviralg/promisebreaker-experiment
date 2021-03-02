@@ -330,8 +330,8 @@ dependency-library-install: dependency-library-install-cran \
                             dependency-library-install-bioc
 
 define INSTALL_CRAN_PACKAGES_CODE
-options(repos       = 'file://$(DEPENDENCY_LIBRARY_MIRROR_CRAN)');
-options(BioC_mirror = 'file://$(DEPENDENCY_LIBRARY_MIRROR_BIOC)');
+options(repos       = 'file://$(DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)');
+options(BioC_mirror = 'file://$(DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)');
 packages <- setdiff(available.packages()[,1], installed.packages()[,1]);
 cat('Installing', length(packages), 'packages with', $(CPU_COUNT), 'cpus\n');
 install.packages(packages,
@@ -361,8 +361,8 @@ dependency-library-install-cran:
 	$(MV) -f *.out $(LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH) 2> /dev/null
 
 define INSTALL_BIOC_PACKAGES_CODE
-options(repos       = 'file://$(DEPENDENCY_LIBRARY_MIRROR_CRAN)');
-options(BioC_mirror = 'file://$(DEPENDENCY_LIBRARY_MIRROR_BIOC)');
+options(repos       = 'file://$(DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)');
+options(BioC_mirror = 'file://$(DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)');
 library(BiocManager);
 packages <- setdiff(available(), installed.packages()[,1]);
 cat('Installing', length(packages), 'packages with', $(CPU_COUNT), 'cpus\n');
