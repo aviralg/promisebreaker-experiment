@@ -100,7 +100,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -qy install \
 # latest version of GNU parallel
 RUN curl -L https://bit.ly/install-gnu-parallel | sh -x
 RUN DEBIAN_FRONTEND=noninteractive apt-get -qy install xvfb expect libzstd-dev time tree pandoc xfonts-100dpi xfonts-75dpi
-
+RUN DEBIAN_FRONTEND=noninteractive apt-get -qy install cloc
 ################################################################################
 ## Tracing Dependencies
 ################################################################################
