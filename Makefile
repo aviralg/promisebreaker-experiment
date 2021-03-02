@@ -186,7 +186,7 @@ docker run $(DOCKR_RUN_ARGS) dockr $(R_DYNTRACE_BIN) -e ${1} 2>&1 | $(TEE) $(TEE
 endef
 
 define dockr_bash
-docker run $(DOCKR_RUN_ARGS) dockr bash -e ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
+docker run $(DOCKR_RUN_ARGS) dockr bash -c ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
 
 ################################################################################
