@@ -5,6 +5,81 @@
 MAKEFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 PROJECT_DIRPATH := $(dir $(MAKEFILE_PATH))
 
+# logs
+LOGS_DIRPATH := $(PROJECT_DIRPATH)/logs
+
+# dependency
+DEPENDENCY_DIRPATH := $(PROJECT_DIRPATH)/dependency
+LOGS_DEPENDENCY_DIRPATH := $(LOGS_DIRPATH)/dependency
+
+## dependency/dirpath
+DOCKR_BRANCH := master
+DOCKR_GIT_URL := $(AVIRALG_GIT_URL)/dockr.git
+DEPENDENCY_DOCKR_DIRPATH := $(DEPENDENCY_DIRPATH)/dockr
+LOGS_DEPENDENCY_DOCKR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/dockr/
+
+## dependency/r-dyntrace
+R_DYNTRACE_BRANCH := r-4.0.2
+R_DYNTRACE_GIT_URL := $(PRL_PRG_GIT_URL)/R-dyntrace.git
+DEPENDENCY_R_DYNTRACE_DIRPATH := $(DEPENDENCY_DIRPATH)/R-dyntrace
+LOGS_DEPENDENCY_R_DYNTRACE_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/R-dyntrace
+R_DYNTRACE_BIN := $(DEPENDENCY_R_DYNTRACE_DIRPATH)/bin/R
+
+## dependency/library
+DEPENDENCY_LIBRARY_DIRPATH := $(DEPENDENCY_DIRPATH)/library
+LOGS_DEPENDENCY_LIBRARY_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/library
+
+### dependency/library/mirror
+DEPENDENCY_LIBRARY_MIRROR_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/mirror
+LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/mirror
+
+#### dependency/library/mirror/cran
+DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/cran
+LOGS_DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/cran
+
+#### dependency/library/mirror/bioc
+DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/bioc
+DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)/release
+LOGS_DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/bioc
+
+### dependency/library/extract
+DEPENDENCY_LIBRARY_EXTRACT_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/extract
+LOGS_DEPENDENCY_LIBRARY_EXTRACT_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/extract
+
+### dependency/library/install
+DEPENDENCY_LIBRARY_INSTALL_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/install
+LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/install
+
+#### dependency/library/install/cran
+LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)/cran
+
+#### dependency/library/install/bioc
+LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)/bioc
+
+## dependency/instrumentr
+INSTRUMENTR_BRANCH := c-api
+INSTRUMENTR_GIT_URL := $(PRL_PRG_GIT_URL)/instrumentr.git
+DEPENDENCY_INSTRUMENTR_DIRPATH := $(DEPENDENCY_DIRPATH)/instrumentr
+LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/instrumentr
+
+## dependency/experimentr
+EXPERIMENTR_BRANCH := master
+EXPERIMENTR_GIT_URL := $(AVIRALG_GIT_URL)/experimentr.git
+DEPENDENCY_EXPERIMENTR_DIRPATH := $(DEPENDENCY_DIRPATH)/experimentr
+LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/experimentr
+
+## dependency/lazr
+LAZR_BRANCH := master
+LAZR_GIT_URL := $(AVIRALG_GIT_URL)/lazr.git
+DEPENDENCY_LAZR_DIRPATH := $(DEPENDENCY_DIRPATH)/lazr
+LOGS_DEPENDENCY_LAZR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/lazr
+
+## dependency/strictr
+STRICTR_BRANCH := master
+STRICTR_GIT_URL := $(AVIRALG_GIT_URL)/strictr.git
+DEPENDENCY_STRICTR_DIRPATH := $(DEPENDENCY_DIRPATH)/strictr
+LOGS_DEPENDENCY_STRICTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/strictr
+
 ################################################################################
 ## docker build args
 ################################################################################
@@ -114,19 +189,9 @@ define dockr_bash
 docker run $(DOCKR_RUN_ARGS) dockr bash -e ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
 
-
-################################################################################
-## logs
-################################################################################
-
-LOGS_DIRPATH := $(PROJECT_DIRPATH)/logs
-
 ################################################################################
 ## dependency
 ################################################################################
-
-DEPENDENCY_DIRPATH := $(PROJECT_DIRPATH)/dependency
-LOGS_DEPENDENCY_DIRPATH := $(LOGS_DIRPATH)/dependency
 
 dependency: dependency-dockr       \
             dependency-r-dyntrace  \
@@ -139,11 +204,6 @@ dependency: dependency-dockr       \
 ################################################################################
 ## dependency/dockr
 ################################################################################
-
-DOCKR_BRANCH := master
-DOCKR_GIT_URL := $(AVIRALG_GIT_URL)/dockr.git
-DEPENDENCY_DOCKR_DIRPATH := $(DEPENDENCY_DIRPATH)/dockr
-LOGS_DEPENDENCY_DOCKR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/dockr/
 
 dependency-dockr:
 	mkdir -p $(DEPENDENCY_DIRPATH)
@@ -162,12 +222,6 @@ dependency-dockr:
 ## dependency/r-dyntrace
 ################################################################################
 
-R_DYNTRACE_BRANCH := r-4.0.2
-R_DYNTRACE_GIT_URL := $(PRL_PRG_GIT_URL)/R-dyntrace.git
-DEPENDENCY_R_DYNTRACE_DIRPATH := $(DEPENDENCY_DIRPATH)/R-dyntrace
-LOGS_DEPENDENCY_R_DYNTRACE_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/R-dyntrace
-R_DYNTRACE_BIN := $(DEPENDENCY_R_DYNTRACE_DIRPATH)/bin/R
-
 dependency-r-dyntrace:
 	mkdir -p $(DEPENDENCY_DIRPATH)
 	mkdir -p $(LOGS_DEPENDENCY_R_DYNTRACE_DIRPATH)
@@ -178,29 +232,21 @@ dependency-r-dyntrace:
 ## dependency/library
 ################################################################################
 
-DEPENDENCY_LIBRARY_DIRPATH := $(DEPENDENCY_DIRPATH)/library
-LOGS_DEPENDENCY_LIBRARY_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/library
-
 dependency-library: dependency-library-mirror  \
-                          dependency-library-extract \
-                          dependency-library-install \
-                          dependency-library-snapshot
+                    dependency-library-extract \
+                    dependency-library-install \
+                    dependency-library-snapshot
 
 ################################################################################
 ## dependency/library/mirror
 ################################################################################
 
-DEPENDENCY_LIBRARY_MIRROR_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/mirror
-LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/mirror
 dependency-library-mirror: dependency-library-mirror-cran  \
-                                 dependency-library-mirror-bioc
+                           dependency-library-mirror-bioc
 
 ################################################################################
 ## dependency/library/mirror/cran
 ################################################################################
-
-DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/cran
-LOGS_DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/cran
 
 dependency-library-mirror-cran:
 	@mkdir -p $(DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)
@@ -217,13 +263,8 @@ dependency-library-mirror-cran:
 	             2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)/rsync.log
 
 ################################################################################
-## dependency/library/mirror/cran
+## dependency/library/mirror/bioc
 ################################################################################
-
-DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/bioc
-DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH := $(DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)/release
-
-LOGS_DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_MIRROR_DIRPATH)/bioc
 
 dependency-library-mirror-bioc:
 	@mkdir -p $(DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH)
@@ -270,9 +311,6 @@ dependency-library-mirror-bioc:
 ## dependency/library/extract
 ################################################################################
 
-DEPENDENCY_LIBRARY_EXTRACT_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/extract
-LOGS_DEPENDENCY_LIBRARY_EXTRACT_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/extract
-
 dependency-library-extract:
 	@mkdir -p $(DEPENDENCY_LIBRARY_EXTRACT_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_EXTRACT_DIRPATH)
@@ -288,11 +326,8 @@ dependency-library-extract:
 ## dependency/library/install
 ################################################################################
 
-DEPENDENCY_LIBRARY_INSTALL_DIRPATH := $(DEPENDENCY_LIBRARY_DIRPATH)/install
-LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_DIRPATH)/install
-
 dependency-library-install: dependency-library-install-cran \
-                                  dependency-library-install-bioc
+                            dependency-library-install-bioc
 
 define INSTALL_CRAN_PACKAGES_CODE
 options(repos       = 'file://$(DEPENDENCY_LIBRARY_MIRROR_CRAN)');
@@ -314,8 +349,9 @@ install.packages(packages,
 endef
 
 
-
-LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)/cran
+################################################################################
+## dependency/library/install/cran
+################################################################################
 
 dependency-library-install-cran:
 	@mkdir -p $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
@@ -344,7 +380,10 @@ install(packages,
                          'Enhances'));
 endef
 
-LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH := $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)/bioc
+
+################################################################################
+## dependency/library/install/bioc
+################################################################################
 
 dependency-repository-install-bioc:
 	@mkdir -p $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
@@ -364,11 +403,6 @@ dependency-repository-snapshot:
 ## dependency/instrumentr
 ################################################################################
 
-INSTRUMENTR_BRANCH := c-api
-INSTRUMENTR_GIT_URL := $(PRL_PRG_GIT_URL)/instrumentr.git
-DEPENDENCY_INSTRUMENTR_DIRPATH := $(DEPENDENCY_DIRPATH)/instrumentr
-LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/instrumentr
-
 dependency-instrumentr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)
@@ -378,11 +412,6 @@ dependency-instrumentr:
 ################################################################################
 ## dependency/experimentr
 ################################################################################
-
-EXPERIMENTR_BRANCH := master
-EXPERIMENTR_GIT_URL := $(AVIRALG_GIT_URL)/experimentr.git
-DEPENDENCY_EXPERIMENTR_DIRPATH := $(DEPENDENCY_DIRPATH)/experimentr
-LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/experimentr
 
 dependency-experimentr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
@@ -394,11 +423,6 @@ dependency-experimentr:
 ## dependency/lazr
 ################################################################################
 
-LAZR_BRANCH := master
-LAZR_GIT_URL := $(AVIRALG_GIT_URL)/lazr.git
-DEPENDENCY_LAZR_DIRPATH := $(DEPENDENCY_DIRPATH)/lazr
-LOGS_DEPENDENCY_LAZR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/lazr
-
 dependency-lazr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_LAZR_DIRPATH)
@@ -408,11 +432,6 @@ dependency-lazr:
 ################################################################################
 ## dependency/strictr
 ################################################################################
-
-STRICTR_BRANCH := master
-STRICTR_GIT_URL := $(AVIRALG_GIT_URL)/strictr.git
-DEPENDENCY_STRICTR_DIRPATH := $(DEPENDENCY_DIRPATH)/strictr
-LOGS_DEPENDENCY_STRICTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/strictr
 
 dependency-strictr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
