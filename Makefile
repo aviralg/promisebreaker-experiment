@@ -499,15 +499,6 @@ experiment-corpus-extract:
 	mkdir -p $(LOGS_CORPUS_EXTRACT_DIRPATH)
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CODE_EXTRACT_CODE))", $(LOGS_CORPUS_EXTRACT_DIRPATH)/extract.log)
 
-define CODE_EXTRACT_CODE
-library(experimentr);
-res <- extract_code(installed.packages()[,1],
-                    progress=TRUE,
-                    type=c('example', 'vignette', 'testthat', 'test'),
-                    index_filepath='$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)',
-                    data_dirpath='$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)');
-endef
-
 ################################################################################
 ## experiment/corpus/extract
 ################################################################################
