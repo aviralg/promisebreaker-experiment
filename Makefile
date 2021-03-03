@@ -128,7 +128,7 @@ DOCKR_RUN_ARGS := -t --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix" -v
 ## Applications
 ################################################################################
 TEE := tee
-TEE_FLAGS := --ignore-interrupts
+TEE_FLAGS := -i
 TIME := time --portability
 XVFB_RUN := xvfb-run
 MV := mv
