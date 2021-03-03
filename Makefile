@@ -102,7 +102,7 @@ PASSWORD := $(USER)
 R_LIBS_USER := $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
 
 R_DYNTRACE := $(PROJECT_DIRPATH)R-dyntrace/bin/R
-DOCKR_RUN_ARGS := --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix" -v $(PROJECT_DIRPATH):$(PROJECT_DIRPATH) --publish=$(PORT)
+DOCKR_RUN_ARGS := -t --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix" -v $(PROJECT_DIRPATH):$(PROJECT_DIRPATH) --publish=$(PORT)
 
 ################################################################################
 ## Applications
