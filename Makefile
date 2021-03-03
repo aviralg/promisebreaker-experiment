@@ -200,7 +200,7 @@ define clonepull
 if [ ! -d ${3}/.git ]; then                                            \
     git clone --branch ${1} ${2} ${3} 2>&1 | $(TEE) $(TEE_FLAGS) ${4}; \
 else                                                                   \
-    cd ${3} && git pull 2>&1 | $(TEE) $(TEE_FLAGS) ${4};               \
+    cd ${3} && git pull origin ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${4};   \
 fi;
 endef
 
