@@ -463,7 +463,7 @@ LOGS_CORPUS_DIRPATH := $(LOGS_DIRPATH)/corpus
 
 experiment-corpus: experiment-corpus-extract      \
                    experiment-corpus-sloc         \
-                   experiment-corpus-determinism
+                   experiment-corpus-deterministic
 
 define CODE_EXTRACT_CODE
 library(experimentr);
@@ -488,6 +488,7 @@ experiment-corpus-extract:
 define CODE_EXTRACT_CODE
 library(experimentr);
 res <- extract_code(installed.packages()[,1],
+                    progress=TRUE,
                     type=c('example', 'vignette', 'testthat', 'test'),
                     index_filepath='$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)',
                     data_dirpath='$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)');
@@ -504,7 +505,8 @@ experiment-corpus-sloc:
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_SLOC))", $(LOGS_CORPUS_SLOC_DIRPATH)/sloc.log)
 
 
-experiment-corpus-determinism:
+experiment-corpus-deterministic:
+	@echo TODO
 
 ################################################################################
 ## Experiment: Profile
