@@ -585,4 +585,4 @@ experiment-report-input:
 ################################################################################
 experiment-report-render:
 	mkdir -p $(LOGS_REPORT_RENDER_DIRPATH)
-	make -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) report 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_REPORT_RENDER_DIRPATH)/render.log
+	$(call dockr_bash, "make -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) report", $(LOGS_REPORT_RENDER_DIRPATH)/render.log)
