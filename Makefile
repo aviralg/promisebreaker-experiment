@@ -94,12 +94,13 @@ LOGS_DEPENDENCY_STRICTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/strictr
 ################################################################################
 ## docker build args
 ################################################################################
-LIBRARY_DIRPATH := $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
 PORT := 5000:80
 USER := $(USER)
 UID := $(shell id -u)
 GID := $(shell id -g)
 PASSWORD := $(USER)
+R_LIBS_USER := $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
+
 R_DYNTRACE := $(PROJECT_DIRPATH)R-dyntrace/bin/R
 DOCKR_RUN_ARGS := --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix" -v $(PROJECT_DIRPATH):$(PROJECT_DIRPATH) --publish=$(PORT)
 
@@ -212,12 +213,13 @@ dependency-dockr:
 	mkdir -p $(LOGS_DEPENDENCY_DIRPATH)
 	mkdir -p $(LOGS_DEPENDENCY_DOCKR_DIRPATH)
 	$(call clonepull, $(DOCKR_BRANCH), $(DOCKR_GIT_URL), $(DEPENDENCY_DOCKR_DIRPATH), $(LOGS_DEPENDENCY_DOCKR_DIRPATH)/clone.log)
-	docker build                              \
-	       --build-arg USER=$(USER)           \
-	       --build-arg UID=$(UID)             \
-	       --build-arg GID=$(GID)             \
-	       --build-arg PASSWORD=$(PASSWORD)   \
-	       --tag dockr                        \
+	docker build                                   \
+	       --build-arg USER=$(USER)                \
+	       --build-arg UID=$(UID)                  \
+	       --build-arg GID=$(GID)                  \
+	       --build-arg PASSWORD=$(PASSWORD)        \
+	       --build-arg R_LIBS_USER=$(R_LIBS_USER)  \
+	       --tag dockr                             \
 	       $(DEPENDENCY_DOCKR_DIRPATH) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_DEPENDENCY_DOCKR_DIRPATH)/build.log
 
 ################################################################################
