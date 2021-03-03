@@ -110,6 +110,23 @@ EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corp
 EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst
 LOGS_CORPUS_SLOC_DIRPATH := $(LOGS_CORPUS_DIRPATH)/sloc
 
+## experiment/report
+EXPERIMENT_REPORT_DIRPATH := $(EXPERIMENT_DIRPATH)/report
+LOGS_REPORT_DIRPATH := $(LOGS_DIRPATH)/report
+
+## experiment/report/paper
+PAPER_BRANCH := master
+PAPER_GIT_URL := $(AVIRALG_GIT_URL)/promisebreaker-paper.git
+EXPERIMENT_REPORT_PAPER_DIRPATH := $(EXPERIMENT_REPORT_DIRPATH)/paper
+LOGS_REPORT_PAPER_DIRPATH := $(LOGS_REPORT_DIRPATH)/paper
+
+## experiment/report/input
+EXPERIMENT_REPORT_PAPER_DATA_DIRPATH := $(EXPERIMENT_REPORT_PAPER_DIRPATH)/data
+LOGS_REPORT_INPUT_DIRPATH := $(LOGS_REPORT_DIRPATH)/input
+
+## experiment/report/render
+LOGS_REPORT_RENDER_DIRPATH := $(LOGS_REPORT_DIRPATH)/render
+
 
 ################################################################################
 ## docker build args
@@ -133,8 +150,6 @@ TIME := time --portability
 XVFB_RUN := xvfb-run
 MV := mv
 RM := rm
-
-
 
 ################################################################################
 ## package setup options
@@ -384,6 +399,10 @@ dependency-library-install-cran:
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(INSTALL_CRAN_PACKAGES_CODE))", $(LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH)/install.log)
 	$(MV) -f *.out $(LOGS_DEPENDENCY_LIBRARY_INSTALL_CRAN_DIRPATH) 2> /dev/null
 
+################################################################################
+## dependency/library/install/bioc
+################################################################################
+
 define INSTALL_BIOC_PACKAGES_CODE
 options(repos       = 'file://$(DEPENDENCY_LIBRARY_MIRROR_CRAN_DIRPATH)');
 options(BioC_mirror = 'file://$(DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)');
@@ -403,11 +422,6 @@ install(packages,
                          'Suggests',
                          'Enhances'));
 endef
-
-
-################################################################################
-## dependency/library/install/bioc
-################################################################################
 
 dependency-repository-install-bioc:
 	@mkdir -p $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
@@ -541,6 +555,34 @@ experiment-remove-drive:
 experiment-remove-trace:
 
 ################################################################################
-## Experiment: Report
+## experiment/report
 ################################################################################
-experiment-report:
+experiment-report: experiment-report-paper  \
+                   experiment-report-input  \
+                   experiment-report-render
+
+################################################################################
+## experiment/report/paper
+################################################################################
+experiment-report-paper:
+	@mkdir -p $(EXPERIMENT_REPORT_DIRPATH)
+	@mkdir -p $(LOGS_REPORT_PAPER_DIRPATH)
+	$(call clonepull, $(PAPER_BRANCH), $(PAPER_GIT_URL), $(EXPERIMENT_REPORT_PAPER_DIRPATH), $(LOGS_REPORT_PAPER_DIRPATH)/clone.log)
+
+################################################################################
+## experimentr/report/input
+################################################################################
+experiment-report-input:
+	mkdir -p $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)
+	mkdir -p $(LOGS_REPORT_PAPER_DATA_DIRPATH)
+	cp $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/index.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/extract-index.fst
+	cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-corpus.fst
+	#cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
+
+
+################################################################################
+## experiment/report/render
+################################################################################
+experiment-report-render:
+	mkdir -p $(LOGS_REPORT_RENDER_DIRPATH)
+	make -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) report 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_REPORT_RENDER_DIRPATH)/render.log

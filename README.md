@@ -34,7 +34,10 @@
 	  - experiment-remove-trace
 	  - experiment-remove-analyze
 	  
-	- experiment-analyze
+	- experiment-report
+      - experiment-report-paper
+      - experiment-report-input
+      - experiment-report-render
 
 
 
