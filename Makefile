@@ -574,7 +574,7 @@ experiment-report-paper:
 ################################################################################
 experiment-report-input:
 	mkdir -p $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)
-	mkdir -p $(LOGS_REPORT_PAPER_DATA_DIRPATH)
+	mkdir -p $(LOGS_REPORT_INPUT_DIRPATH)
 	cp $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/index.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/extract-index.fst
 	cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-corpus.fst
 	#cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
