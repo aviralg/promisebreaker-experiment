@@ -91,6 +91,26 @@ STRICTR_GIT_URL := $(AVIRALG_GIT_URL)/strictr.git
 DEPENDENCY_STRICTR_DIRPATH := $(DEPENDENCY_DIRPATH)/strictr
 LOGS_DEPENDENCY_STRICTR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/strictr
 
+# experiment
+EXPERIMENT_DIRPATH := $(PROJECT_DIRPATH)/experiment
+
+## experiment/corpus
+EXPERIMENT_CORPUS_DIRPATH := $(EXPERIMENT_DIRPATH)/corpus
+LOGS_CORPUS_DIRPATH := $(LOGS_DIRPATH)/corpus
+
+### experiment/corpus/extract
+EXPERIMENT_CORPUS_EXTRACT_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/extract
+EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH := $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/index.fst
+EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH := $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/programs
+LOGS_CORPUS_EXTRACT_DIRPATH := $(LOGS_CORPUS_DIRPATH)/extract
+
+### experiment/corpus/sloc
+EXPERIMENT_CORPUS_SLOC_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/sloc
+EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst
+EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst
+LOGS_CORPUS_SLOC_DIRPATH := $(LOGS_CORPUS_DIRPATH)/sloc
+
+
 ################################################################################
 ## docker build args
 ################################################################################
@@ -447,8 +467,6 @@ dependency-strictr:
 ## experiment
 ################################################################################
 
-EXPERIMENT_DIRPATH := $(PROJECT_DIRPATH)/experiment
-
 experiment: experiment-corpus		\
             experiment-profile	\
             experiment-remove		\
@@ -457,9 +475,6 @@ experiment: experiment-corpus		\
 ################################################################################
 ## experiment/corpus
 ################################################################################
-
-EXPERIMENT_CORPUS_DIRPATH := $(EXPERIMENT_DIRPATH)/corpus
-LOGS_CORPUS_DIRPATH := $(LOGS_DIRPATH)/corpus
 
 experiment-corpus: experiment-corpus-extract      \
                    experiment-corpus-sloc         \
@@ -473,11 +488,10 @@ res <- extract_code(installed.packages()[,1],
                     data_dirpath='$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)');
 endef
 
-EXPERIMENT_CORPUS_EXTRACT_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/extract
-EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH := $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/index.fst
-EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH := $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/programs
 
-LOGS_CORPUS_EXTRACT_DIRPATH := $(LOGS_CORPUS_DIRPATH)/extract
+################################################################################
+## experiment/corpus/extract
+################################################################################
 
 experiment-corpus-extract:
 	mkdir -p $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)
@@ -494,16 +508,20 @@ res <- extract_code(installed.packages()[,1],
                     data_dirpath='$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)');
 endef
 
-EXPERIMENT_CORPUS_SLOC_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/sloc
-EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst
-EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst
+################################################################################
+## experiment/corpus/extract
+################################################################################
 
-LOGS_CORPUS_SLOC_DIRPATH := $(LOGS_CORPUS_DIRPATH)/sloc
+define CORPUS_SLOC
+library(experimentr);
+res <- compute_sloc('$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)',
+                    output_filepath='$(EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH)');
+endef
+
 experiment-corpus-sloc:
 	mkdir -p $(EXPERIMENT_CORPUS_SLOC_DIRPATH)
 	mkdir -p $(LOGS_CORPUS_SLOC_DIRPATH)
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_SLOC))", $(LOGS_CORPUS_SLOC_DIRPATH)/sloc.log)
-
 
 experiment-corpus-deterministic:
 	@echo TODO
