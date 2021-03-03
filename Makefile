@@ -506,7 +506,8 @@ experiment-corpus-extract:
 define CORPUS_SLOC
 library(experimentr);
 res <- compute_sloc('$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)',
-                    output_filepath='$(EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH)');
+                    output_filepath='$(EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH)',
+                    echo = TRUE) ;
 endef
 
 experiment-corpus-sloc:
