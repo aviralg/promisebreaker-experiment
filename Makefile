@@ -445,7 +445,7 @@ dependency-instrumentr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)
 	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(DEPENDENCY_INSTRUMENTR_DIRPATH), $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/clone.log)
-	$(call dockr_rdyntrace, 'make --directory=$(DEPENDENCY_INSTRUMENTR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/install.log)
+	$(call dockr_bash, 'make --directory=$(DEPENDENCY_INSTRUMENTR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/install.log)
 
 ################################################################################
 ## dependency/experimentr
