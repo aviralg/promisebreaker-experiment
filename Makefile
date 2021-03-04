@@ -578,6 +578,8 @@ experiment-report-input:
 	cp $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/index.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/extract-index.fst
 	cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-corpus.fst
 	#cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
+	git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) add $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/*.fst
+	git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) commit -m "Update data on $(shell date) by $(shell hostname)"
 
 
 ################################################################################
