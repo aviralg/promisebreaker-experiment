@@ -106,9 +106,15 @@ LOGS_CORPUS_EXTRACT_DIRPATH := $(LOGS_CORPUS_DIRPATH)/extract
 
 ### experiment/corpus/sloc
 EXPERIMENT_CORPUS_SLOC_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/sloc
-EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst
-EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst
 LOGS_CORPUS_SLOC_DIRPATH := $(LOGS_CORPUS_DIRPATH)/sloc
+
+#### experiment/corpus/sloc/corpus
+LOGS_CORPUS_SLOC_CORPUS_DIRPATH := $(LOGS_CORPUS_SLOC_DIRPATH)/corpus
+EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/sloc.fst
+
+#### experiment/corpus/sloc/corpus
+LOGS_CORPUS_SLOC_PACKAGE_DIRPATH := $(LOGS_CORPUS_SLOC_DIRPATH)/package
+EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/sloc.fst
 
 ### experiment/corpus/package
 EXPERIMENT_CORPUS_PACKAGE_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/package
@@ -126,7 +132,7 @@ EXPERIMENT_REPORT_PAPER_DIRPATH := $(EXPERIMENT_REPORT_DIRPATH)/paper
 LOGS_REPORT_PAPER_DIRPATH := $(LOGS_REPORT_DIRPATH)/paper
 
 ## experiment/report/input
-EXPERIMENT_REPORT_PAPER_DATA_DIRPATH := $(EXPERIMENT_REPORT_PAPER_DIRPATH)/data
+PAEXPERIMENT_REPORT_PAPER_DATA_DIRPATH := $(EXPERIMENT_REPORT_PAPER_DIRPATH)/data
 LOGS_REPORT_INPUT_DIRPATH := $(LOGS_REPORT_DIRPATH)/input
 
 ## experiment/report/update
@@ -243,6 +249,19 @@ endef
 define dockr_make
 $(call tee, docker run $(DOCKR_RUN_ARGS) dockr make ${1}, ${2})
 endef
+
+
+define CUSTOM_INSTALL_CODE
+install.packages($(PACKAGE_LIST),repos = \"http://cran.us.r-project.org\")
+endef
+
+
+install-custom-packages:
+	echo "begin"
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CUSTOM_INSTALL_CODE))", "/tmp/custom.log")
+	echo "here"
+
+.PHONY: install-custom-packages
 
 ################################################################################
 ## dependency
@@ -462,7 +481,7 @@ dependency-instrumentr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)
 	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(DEPENDENCY_INSTRUMENTR_DIRPATH), $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/clone.log)
-	$(call dockr_bash, 'make --directory=$(DEPENDENCY_INSTRUMENTR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/install.log)
+	$(call dockr_make, make -C $(DEPENDENCY_INSTRUMENTR_DIRPATH) R=$(R_DYNTRACE_BIN), $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/install.log)
 
 ################################################################################
 ## dependency/experimentr
@@ -472,7 +491,7 @@ dependency-experimentr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH)
 	$(call clonepull, $(EXPERIMENTR_BRANCH), $(EXPERIMENTR_GIT_URL), $(DEPENDENCY_EXPERIMENTR_DIRPATH), $(LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH)/clone.log)
-	$(call dockr_bash, 'make --directory=$(DEPENDENCY_EXPERIMENTR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH)/install.log)
+	$(call dockr_make, -C $(DEPENDENCY_EXPERIMENTR_DIRPATH) R=$(R_DYNTRACE_BIN), $(LOGS_DEPENDENCY_EXPERIMENTR_DIRPATH)/install.log)
 
 ################################################################################
 ## dependency/lazr
@@ -482,7 +501,7 @@ dependency-lazr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_LAZR_DIRPATH)
 	$(call clonepull,$(LAZR_BRANCH), $(LAZR_GIT_URL), $(DEPENDENCY_LAZR_DIRPATH), $(LOGS_DEPENDENCY_LAZR_DIRPATH)/clone.log)
-	$(call dockr_bash, 'make --directory=$(DEPENDENCY_LAZR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_LAZR_DIRPATH)/install.log)
+	$(call dockr_make, -C $(DEPENDENCY_LAZR_DIRPATH) R=$(R_DYNTRACE_BIN), $(LOGS_DEPENDENCY_LAZR_DIRPATH)/install.log)
 
 ################################################################################
 ## dependency/strictr
@@ -492,7 +511,7 @@ dependency-strictr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_STRICTR_DIRPATH)
 	$(call clonepull, $(STRICTR_BRANCH), $(STRICTR_GIT_URL), $(DEPENDENCY_STRICTR_DIRPATH), $(LOGS_DEPENDENCY_STRICTR_DIRPATH)/clone.log)
-	$(call dockr_bash, 'make --directory=$(DEPENDENCY_STRICTR_DIRPATH) R=$(R_DYNTRACE_BIN)', $(LOGS_DEPENDENCY_STRICTR_DIRPATH)/install.log)
+	$(call dockr_make, -C $(DEPENDENCY_STRICTR_DIRPATH) R=$(R_DYNTRACE_BIN), $(LOGS_DEPENDENCY_STRICTR_DIRPATH)/install.log)
 
 ################################################################################
 ## experiment
@@ -535,17 +554,41 @@ experiment-corpus-extract:
 ## experiment/corpus/sloc
 ################################################################################
 
+experiment-corpus-sloc: experiment-corpus-sloc-corpus  \
+                        experiment-corpus-sloc-package
+
+################################################################################
+## experiment/corpus/sloc/corpus
+################################################################################
+
 define CORPUS_SLOC
 library(experimentr);
 res <- compute_sloc('$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)',
                     output_filepath='$(EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH)',
-                    echo = TRUE) ;
+                    echo = TRUE);
 endef
 
-experiment-corpus-sloc:
-	mkdir -p $(EXPERIMENT_CORPUS_SLOC_DIRPATH)
-	mkdir -p $(LOGS_CORPUS_SLOC_DIRPATH)
-	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_SLOC))", $(LOGS_CORPUS_SLOC_DIRPATH)/sloc.log)
+experiment-corpus-sloc-corpus:
+	mkdir -p $(EXPERIMENT_CORPUS_SLOC_CORPUS_DIRPATH)
+	mkdir -p $(LOGS_CORPUS_SLOC_CORPUS_DIRPATH)
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_SLOC))", $(LOGS_CORPUS_SLOC_CORPUS_DIRPATH)/sloc.log)
+
+
+################################################################################
+## experiment/corpus/sloc/package
+################################################################################
+
+define PACKAGE_SLOC
+library(experimentr);
+res <- compute_sloc('$(DEPENDENCY_LIBRARY_EXTRACT_DIRPATH)',
+                    output_filepath='$(EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH)',
+                    echo = FALSE);
+endef
+
+experiment-corpus-sloc-package:
+	mkdir -p $(EXPERIMENT_CORPUS_SLOC_PACKAGE_DIRPATH)
+	mkdir -p $(LOGS_CORPUS_SLOC_PACKAGE_DIRPATH)
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(PACKAGE_SLOC))", $(LOGS_CORPUS_SLOC_PACKAGE_DIRPATH)/sloc.log)
 
 
 ################################################################################
@@ -616,8 +659,7 @@ experiment-report-input:
 	mkdir -p $(LOGS_REPORT_INPUT_DIRPATH)
 	cp $(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/extract-index.fst
 	cp $(EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH)  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-corpus.fst
-	#cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst
-	#$(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
+	cp $(EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH)  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
 	cp $(EXPERIMENT_CORPUS_PACKAGE_INFO_FILEPATH) $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/package-info.fst
 
 ################################################################################
