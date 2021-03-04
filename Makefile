@@ -127,6 +127,7 @@ LOGS_REPORT_INPUT_DIRPATH := $(LOGS_REPORT_DIRPATH)/input
 ## experiment/report/render
 LOGS_REPORT_RENDER_DIRPATH := $(LOGS_REPORT_DIRPATH)/render
 
+PACKAGE_LIST := installed.packages()[,1]
 
 ################################################################################
 ## docker build args
@@ -496,7 +497,7 @@ experiment-corpus: experiment-corpus-extract      \
 
 define CODE_EXTRACT_CODE
 library(experimentr);
-res <- extract_code(installed.packages()[,1],
+res <- extract_code($(PACKAGE_LIST),
                     type=c('example', 'vignette', 'testthat', 'test'),
                     index_filepath='$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)',
                     data_dirpath='$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)');
@@ -580,7 +581,7 @@ experiment-report-input:
 	#cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
 	git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) add $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/*.fst
 	git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) commit -m "Update data on $(shell date) by $(shell hostname)"
-
+	git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) push origin $(PAPER_BRANCH)
 
 ################################################################################
 ## experiment/report/render
