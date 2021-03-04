@@ -555,8 +555,8 @@ experiment-corpus-sloc:
 define CORPUS_PACKAGE
 library(experimentr);
 get_package_info($(PACKAGE_LIST),
-	               progress = TRUE,
-                 output_filepath='$(EXPERIMENT_CORPUS_PACKAGE_INFO_FILEPATH)') ;
+                 progress = TRUE,
+                 output_filepath='$(EXPERIMENT_CORPUS_PACKAGE_INFO_FILEPATH)');
 endef
 
 experiment-corpus-package:
