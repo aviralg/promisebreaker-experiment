@@ -110,6 +110,11 @@ EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corp
 EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst
 LOGS_CORPUS_SLOC_DIRPATH := $(LOGS_CORPUS_DIRPATH)/sloc
 
+### experiment/corpus/package
+EXPERIMENT_CORPUS_PACKAGE_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/package
+EXPERIMENT_CORPUS_PACKAGE_INFO_FILEPATH := $(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)/info.fst
+LOGS_CORPUS_PACKAGE_DIRPATH := $(LOGS_CORPUS_DIRPATH)/package
+
 ## experiment/report
 EXPERIMENT_REPORT_DIRPATH := $(EXPERIMENT_DIRPATH)/report
 LOGS_REPORT_DIRPATH := $(LOGS_DIRPATH)/report
@@ -502,8 +507,9 @@ experiment: experiment-corpus		\
 ## experiment/corpus
 ################################################################################
 
-experiment-corpus: experiment-corpus-extract      \
-                   experiment-corpus-sloc         \
+experiment-corpus: experiment-corpus-extract       \
+                   experiment-corpus-sloc          \
+                   experiment-corpus-package       \
                    experiment-corpus-deterministic
 
 define CODE_EXTRACT_CODE
@@ -526,7 +532,7 @@ experiment-corpus-extract:
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CODE_EXTRACT_CODE))", $(LOGS_CORPUS_EXTRACT_DIRPATH)/extract.log)
 
 ################################################################################
-## experiment/corpus/extract
+## experiment/corpus/sloc
 ################################################################################
 
 define CORPUS_SLOC
@@ -541,6 +547,26 @@ experiment-corpus-sloc:
 	mkdir -p $(LOGS_CORPUS_SLOC_DIRPATH)
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_SLOC))", $(LOGS_CORPUS_SLOC_DIRPATH)/sloc.log)
 
+
+################################################################################
+## experiment/corpus/package
+################################################################################
+
+define CORPUS_PACKAGE
+library(experimentr);
+get_package_info($(PACKAGE_LIST),
+	               progress = TRUE,
+                 output_filepath='$(EXPERIMENT_CORPUS_PACKAGE_INFO_FILEPATH)') ;
+endef
+
+experiment-corpus-package:
+	mkdir -p $(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)
+	mkdir -p $(LOGS_CORPUS_PACKAGE_DIRPATH)
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_PACKAGE))", $(LOGS_CORPUS_PACKAGE_DIRPATH)/package.log)
+
+################################################################################
+## experiment/corpus/deterministic
+################################################################################
 experiment-corpus-deterministic:
 	@echo TODO
 
@@ -588,9 +614,11 @@ experiment-report-paper:
 experiment-report-input:
 	mkdir -p $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)
 	mkdir -p $(LOGS_REPORT_INPUT_DIRPATH)
-	cp $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)/index.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/extract-index.fst
-	cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-corpus.fst
-	#cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
+	cp $(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/extract-index.fst
+	cp $(EXPERIMENT_CORPUS_SLOC_CORPUS_FILEPATH)  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-corpus.fst
+	#cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst
+	#$(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
+	cp $(EXPERIMENT_CORPUS_PACKAGE_INFO_FILEPATH) $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/package-info.fst
 
 ################################################################################
 ## experiment/report/render
