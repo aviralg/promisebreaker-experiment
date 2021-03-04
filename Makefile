@@ -235,6 +235,10 @@ define tee
 ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
 
+define dockr_make
+$(call tee, docker run $(DOCKR_RUN_ARGS) dockr make ${1}, ${2})
+endef
+
 ################################################################################
 ## dependency
 ################################################################################
@@ -588,16 +592,21 @@ experiment-report-input:
 	cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/corpus.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-corpus.fst
 	#cp $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/package.fst  $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/sloc-package.fst
 
-experiment-report-update:
-	mkdir -p $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)
-	mkdir -p $(LOGS_REPORT_UPDATE_DIRPATH)
-	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) add $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)/*.fst, $(LOGS_REPORT_UPDATE_DIRPATH)/add.log)
-	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) diff-index --quiet HEAD || git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) commit -m "Update data on $(shell date) by $(shell hostname)", $(LOGS_REPORT_UPDATE_DIRPATH)/commit.log)
-	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) push origin $(PAPER_BRANCH), $(LOGS_REPORT_UPDATE_DIRPATH)/push.log)
-
 ################################################################################
 ## experiment/report/render
 ################################################################################
+
 experiment-report-render:
 	mkdir -p $(LOGS_REPORT_RENDER_DIRPATH)
-	$(call dockr_bash, "make -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) report", $(LOGS_REPORT_RENDER_DIRPATH)/render.log)
+	$(call dockr_make, -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) report R=$(R_DYNTRACE_BIN), $(LOGS_REPORT_RENDER_DIRPATH)/render.log)
+
+################################################################################
+## experiment/report/update
+################################################################################
+
+experiment-report-update:
+	mkdir -p $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)
+	mkdir -p $(LOGS_REPORT_UPDATE_DIRPATH)
+	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) add *.fst *.html, $(LOGS_REPORT_UPDATE_DIRPATH)/add.log)
+	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) diff-index --quiet HEAD || git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) commit -m "Update data on $(shell date) by $(shell hostname)", $(LOGS_REPORT_UPDATE_DIRPATH)/commit.log)
+	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) push origin $(PAPER_BRANCH), $(LOGS_REPORT_UPDATE_DIRPATH)/push.log)
