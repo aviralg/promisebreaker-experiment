@@ -603,7 +603,7 @@ define CORPUS_PACKAGE
 library(experimentr);
 parallelize(r_expr('experimentr::get_package_info(\'{}\', output_filepath = \'$(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)/{}.fst\')'),
             vector_input(installed.packages()[,1]),
-            engine = gnu_parallel_engine("--progress --wd $(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)"))
+            engine = gnu_parallel('--progress --wd $(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)'))
 endef
 
 experiment-corpus-package:
