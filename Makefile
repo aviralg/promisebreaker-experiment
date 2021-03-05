@@ -169,6 +169,7 @@ XVFB_RUN := xvfb-run
 MV := mv
 RM := rm
 
+DATE := TZ='America/New_York' date +"%Y-%b-%d %I:%M:%S %p"
 ################################################################################
 ## package setup options
 ################################################################################
@@ -681,7 +682,7 @@ experiment-report-update:
 	mkdir -p $(EXPERIMENT_REPORT_PAPER_DATA_DIRPATH)
 	mkdir -p $(LOGS_REPORT_UPDATE_DIRPATH)
 	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) add *.fst *.html, $(LOGS_REPORT_UPDATE_DIRPATH)/add.log)
-	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) diff-index --quiet HEAD || git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) commit -m "Update data on $(shell date) by $(shell hostname)", $(LOGS_REPORT_UPDATE_DIRPATH)/commit.log)
+	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) diff-index --quiet HEAD || git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) commit -m "Update data from $(shell hostname) on $(DATE)", $(LOGS_REPORT_UPDATE_DIRPATH)/commit.log)
 	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) push origin $(PAPER_BRANCH), $(LOGS_REPORT_UPDATE_DIRPATH)/push.log)
 
 #parallelize( r_expr("experimentr::get_package_info('{}', index_filepath = '/tmp/{}.fst')"), vector_input(installed.packages()[,1]) )
