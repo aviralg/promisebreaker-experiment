@@ -549,7 +549,7 @@ endef
 
 experiment-corpus-extract:
 	mkdir -p $(EXPERIMENT_CORPUS_EXTRACT_DIRPATH)
-	mkdir -p $(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)
+	$(RM) -rf $(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH) && mkdir -p $(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)
 	mkdir -p $(LOGS_CORPUS_EXTRACT_DIRPATH)
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CODE_EXTRACT_CODE))", $(LOGS_CORPUS_EXTRACT_DIRPATH)/extract.log)
 
@@ -683,3 +683,6 @@ experiment-report-update:
 	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) add *.fst *.html, $(LOGS_REPORT_UPDATE_DIRPATH)/add.log)
 	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) diff-index --quiet HEAD || git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) commit -m "Update data on $(shell date) by $(shell hostname)", $(LOGS_REPORT_UPDATE_DIRPATH)/commit.log)
 	$(call tee, git -C $(EXPERIMENT_REPORT_PAPER_DIRPATH) push origin $(PAPER_BRANCH), $(LOGS_REPORT_UPDATE_DIRPATH)/push.log)
+
+#parallelize( r_expr("experimentr::get_package_info('{}', index_filepath = '/tmp/{}.fst')"), vector_input(installed.packages()[,1]) )
+#parallelize( r_file("{1}"), vector_input(dir_ls(glob = "*.R", recurse = TRUE)),  "--wd ...")
