@@ -382,6 +382,11 @@ dependency-library-mirror-bioc:
 	             --include '/workflows/src/contrib/'																											\
 	             --include '/workflows/src/contrib/**'																										\
 	             --exclude '/workflows/src/contrib/Archive/**'																						\
+	             --include '/books/'                                                                      \
+	             --include '/books/src/'																																	\
+	             --include '/books/src/contrib/'																													\
+	             --include '/books/src/contrib/**'																												\
+	             --exclude '/books/src/contrib/Archive/**'																							  \
 	             --exclude '/**'																																					\
 	             master.bioconductor.org::release $(DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH) \
 	             2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)/rsync.log
@@ -463,13 +468,13 @@ install(packages,
                          'Enhances'));
 endef
 
-dependency-repository-install-bioc:
+dependency-library-install-bioc:
 	@mkdir -p $(DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_INSTALL_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH)
 
-	mkdir -p $(DEPENDENCY_LIBRARY_MIRROR_BIOC)/packages
-	ln -sfn $(DEPENDENCY_LIBRARY_MIRROR_BIOC)/release $(DEPENDENCY_LIBRARY_MIRROR_BIOC)/packages/3.12
+	mkdir -p $(DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)/packages
+	ln -sfn $(DEPENDENCY_LIBRARY_MIRROR_BIOC_RELEASE_DIRPATH) $(DEPENDENCY_LIBRARY_MIRROR_BIOC_DIRPATH)/packages/3.12
 
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(INSTALL_BIOC_PACKAGES_CODE))", $(LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH)/install.log)
 	$(MV) -f *.out $(LOGS_DEPENDENCY_LIBRARY_INSTALL_BIOC_DIRPATH) 2> /dev/null
