@@ -118,11 +118,29 @@ EXPERIMENT_CORPUS_SLOC_PACKAGE_DIRPATH := $(EXPERIMENT_CORPUS_SLOC_DIRPATH)/pack
 EXPERIMENT_CORPUS_SLOC_PACKAGE_FILEPATH := $(EXPERIMENT_CORPUS_SLOC_PACKAGE_DIRPATH)/sloc.fst
 LOGS_CORPUS_SLOC_PACKAGE_DIRPATH := $(LOGS_CORPUS_SLOC_DIRPATH)/package
 
-
 ### experiment/corpus/package
 EXPERIMENT_CORPUS_PACKAGE_DIRPATH := $(EXPERIMENT_CORPUS_DIRPATH)/package
 EXPERIMENT_CORPUS_PACKAGE_INFO_FILEPATH := $(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)/info.fst
 LOGS_CORPUS_PACKAGE_DIRPATH := $(LOGS_CORPUS_DIRPATH)/package
+
+## experiment/profile
+EXPERIMENT_PROFILE_DIRPATH := $(EXPERIMENT_DIRPATH)/profile
+LOGS_PROFILE_DIRPATH := $(LOGS_DIRPATH)/profile
+
+### experiment/profile/trace
+EXPERIMENT_PROFILE_TRACE_DIRPATH := $(EXPERIMENT_PROFILE_DIRPATH)/trace
+
+EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH := $(EXPERIMENT_PROFILE_TRACE_DIRPATH)/programs
+EXPERIMENT_PROFILE_TRACE_PROGRAMS_JOBLOG_FILEPATH := $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)/joblog
+
+EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH := $(EXPERIMENT_PROFILE_TRACE_DIRPATH)/index
+EXPERIMENT_PROFILE_TRACE_INDEX_EXPR_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/expr
+EXPERIMENT_PROFILE_TRACE_INDEX_OUTDIR_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/outdir
+EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/logdir
+EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/corpus
+EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/client
+
+LOGS_PROFILE_TRACE_DIRPATH := $(LOGS_PROFILE_DIRPATH)/trace
 
 ## experiment/report
 EXPERIMENT_REPORT_DIRPATH := $(EXPERIMENT_DIRPATH)/report
@@ -168,6 +186,7 @@ TIME := time --portability
 XVFB_RUN := xvfb-run
 MV := mv
 RM := rm
+PARALLEL := parallel
 
 DATE := TZ='America/New_York' date +"%Y-%b-%d %I:%M:%S %p"
 ################################################################################
@@ -238,6 +257,11 @@ else                                                                   \
 fi;
 endef
 
+define dockr_parallel
+docker run $(DOCKR_RUN_ARGS) dockr $(PARALLEL) ${1}
+endef
+
+
 define dockr_rdyntrace
 docker run $(DOCKR_RUN_ARGS) dockr $(R_DYNTRACE_BIN) -e ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
@@ -254,6 +278,9 @@ define dockr_make
 $(call tee, docker run $(DOCKR_RUN_ARGS) dockr make ${1}, ${2})
 endef
 
+define r_code
+"$(subst $(newline), ,${1})"
+endef
 
 define CUSTOM_INSTALL_CODE
 install.packages($(PACKAGE_LIST),repos = \"http://cran.us.r-project.org\")
@@ -490,7 +517,7 @@ dependency-instrumentr:
 	@mkdir -p $(DEPENDENCY_DIRPATH)
 	@mkdir -p $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)
 	$(call clonepull, $(INSTRUMENTR_BRANCH), $(INSTRUMENTR_GIT_URL), $(DEPENDENCY_INSTRUMENTR_DIRPATH), $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/clone.log)
-	$(call dockr_make, make -C $(DEPENDENCY_INSTRUMENTR_DIRPATH) R=$(R_DYNTRACE_BIN), $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/install.log)
+	$(call dockr_make, -C $(DEPENDENCY_INSTRUMENTR_DIRPATH) R=$(R_DYNTRACE_BIN), $(LOGS_DEPENDENCY_INSTRUMENTR_DIRPATH)/install.log)
 
 ################################################################################
 ## dependency/experimentr
@@ -606,15 +633,42 @@ experiment-corpus-sloc-package:
 
 define CORPUS_PACKAGE
 library(experimentr);
-parallelize(r_expr('experimentr::get_package_info(\'{}\', output_filepath = \'$(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)/{}.fst\')'),
-            vector_input(installed.packages()[,1]),
-            engine = gnu_parallel('--progress --wd $(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)'))
+library(fs);
+engine <- gnu_parallel('--progress',
+                       '--wd', '$(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)',
+                       '--results', '$(LOGS_CORPUS_PACKAGE_DIRPATH)/package_{1}/',
+                       '--joblog', '$(LOGS_CORPUS_PACKAGE_DIRPATH)/joblog');
+parallelize(
+    r_expr('experimentr::get_package_info(\'{}\', output_filepath = \'$(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)/{}.fst\')',
+            invisible=TRUE),
+    vector_input($(PACKAGE_LIST)),
+    engine = engine,
+    error_on_status = FALSE
+);
+files <- dir_ls('$(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)', glob = '*.fst');
+invisible(merge_tables(files,
+             '$(EXPERIMENT_CORPUS_PACKAGE_INFO_FILEPATH)',
+             remove_files=TRUE,
+             remove_empty_dirs=TRUE));
+log_dirs <- dir_ls('$(LOGS_CORPUS_PACKAGE_DIRPATH)', type = 'directory', recurse = FALSE);
+invisible(merge_logs(log_dirs,
+           '$(LOGS_CORPUS_PACKAGE_DIRPATH)/joblog',
+           '$(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)/job.fst',
+           remove_logs = FALSE,
+           remove_job_log = FALSE,
+           reader = readr::read_file,
+           writer = fst::write_fst));
 endef
 
 experiment-corpus-package:
+	$(RM) -rf $(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)
 	mkdir -p $(EXPERIMENT_CORPUS_PACKAGE_DIRPATH)
+	$(RM) -rf $(LOGS_CORPUS_PACKAGE_DIRPATH)
 	mkdir -p $(LOGS_CORPUS_PACKAGE_DIRPATH)
 	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_PACKAGE))", $(LOGS_CORPUS_PACKAGE_DIRPATH)/package.log)
+
+experiment-corpus-package-merge:
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(CORPUS_PACKAGE_MERGE))", $(LOGS_CORPUS_PACKAGE_DIRPATH)/package.log)
 
 ################################################################################
 ## experiment/corpus/deterministic
@@ -623,15 +677,49 @@ experiment-corpus-deterministic:
 	@echo TODO
 
 ################################################################################
-## Experiment: Profile
+## experiment/profile
 ################################################################################
-experiment-profile: experiment-profile-drive   \
-                    experiment-profile-trace   \
+experiment-profile: experiment-profile-trace   \
                     experiment-profile-analyze
 
-experiment-profile-drive:
+################################################################################
+## experiment/profile/trace
+################################################################################
 
-experiment-profile-trace:
+define PROFILE_TRACE_CODE
+result <- lazr::trace_file('{1}');
+experimentr::write_tracing_result(result, '$(EXPERIMENT_PROFILE_TRACE)/{1}/{2}/{3}')
+endef
+
+experiment-profile-trace: experiment-profile-example  \
+                          experiment-profile-vignette \
+                          experiment-profile-test     \
+                          experiment-profile-testthat
+
+define EXPERIMENT_PROFILE_TRACE_INDEX_CODE
+library(experimentr);
+invisible(select_packages(n = 100, corpusfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH)', clientfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH)'));
+invisible(tracing_index('$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)', '$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)', '$(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)', '$(EXPERIMENT_PROFILE_TRACE_INDEX_EXPR_FILEPATH)', '$(EXPERIMENT_PROFILE_TRACE_INDEX_OUTDIR_FILEPATH)', '$(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH)',
+                          packages = readr::read_lines('$(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH)'),
+                          test_wrapper = 'trace <- lazr::trace_file(\'{file}\'); experimentr::write_trace(trace, \'{outdir}\')',
+                          testthat_wrapper = 'trace <- lazr::trace_expr(testthat::test_file(\'{file}\', package=\'{package}\')); experimentr::write_trace(trace, \'{outdir}\')',
+                          example_wrapper = 'trace <- lazr::trace_file(\'{file}\'); experimentr::write_trace(trace, \'{outdir}\')',
+                          vignette_wrapper = 'trace <- lazr::trace_file(\'{file}\'); experimentr::write_trace(trace, \'{outdir}\')'));
+endef
+
+experiment-profile-trace-index:
+	mkdir -p $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)
+	mkdir -p $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)
+	mkdir -p $(LOGS_PROFILE_TRACE_DIRPATH)
+	$(call dockr_rdyntrace, "$(subst $(newline), ,$(EXPERIMENT_PROFILE_TRACE_INDEX_CODE))", $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/log)
+
+
+experiment-profile-trace-programs:
+	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_JOBLOG_FILEPATH) --bar --eta --wd {2} --jobs=60 --files --results {3}/ $(R_DYNTRACE_BIN) -e "{1}" :::: $(EXPERIMENT_PROFILE_TRACE_INDEX_EXPR_FILEPATH) ::::+ $(EXPERIMENT_PROFILE_TRACE_INDEX_OUTDIR_FILEPATH) ::::+ $(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH))
+
+
+experiment-profile-analyze:
+	@echo TODO
 
 ################################################################################
 ## Experiment: Remove
