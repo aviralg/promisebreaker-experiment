@@ -134,7 +134,7 @@ EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH := $(EXPERIMENT_PROFILE_TRACE_DIRPATH)
 EXPERIMENT_PROFILE_TRACE_PROGRAMS_JOBLOG_FILEPATH := $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)/joblog
 
 EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH := $(EXPERIMENT_PROFILE_TRACE_DIRPATH)/index
-EXPERIMENT_PROFILE_TRACE_INDEX_EXPR_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/expr
+EXPERIMENT_PROFILE_TRACE_INDEX_PROGRAMS_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/programs
 EXPERIMENT_PROFILE_TRACE_INDEX_OUTDIR_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/outdir
 EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/logdir
 EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/corpus
@@ -698,13 +698,13 @@ experiment-profile-trace: experiment-profile-example  \
 
 define EXPERIMENT_PROFILE_TRACE_INDEX_CODE
 library(experimentr);
-invisible(select_packages(n = 100, corpusfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH)', clientfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH)'));
+invisible(select_packages(rank = 1:100, corpusfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH)', clientfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH)'));
 invisible(tracing_index('$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)', '$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)', '$(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)', '$(EXPERIMENT_PROFILE_TRACE_INDEX_PROGRAMS_FILEPATH)', '$(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH)',
                           packages = readr::read_lines('$(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH)'),
-                          test_wrapper = 'library(lazr)\ntrace <- trace_expr({{{code}}})\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')',
-                          testthat_wrapper = 'trace <- library(lazr)\ntrace_expr(testthat::test_file(\'{file}\', package=\'{package}\'))\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')',
-                          example_wrapper = 'trace <- library(lazr)\ntrace_file({{{code}}})\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')',
-                          vignette_wrapper = 'trace <- library(lazr)\ntrace_file({{{code}}})\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')'));
+                          test_wrapper = 'library(lazr)\ntrace <- trace_expr({{\n{code}\n}})\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')',
+                          testthat_wrapper = 'library(lazr)\ntrace <- trace_expr(testthat::test_file(\'{file}\', package=\'{package}\'))\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')',
+                          example_wrapper = 'library(lazr)\ntrace <- trace_expr({{\n{code}\n}})\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')',
+                          vignette_wrapper = 'library(lazr)\ntrace <- trace_expr({{\n{code}\n}})\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')'));
 endef
 
 experiment-profile-trace-index:
@@ -715,7 +715,8 @@ experiment-profile-trace-index:
 
 
 experiment-profile-trace-programs:
-	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_JOBLOG_FILEPATH) --bar --eta --wd {2} --jobs=60 --files --results {3}/ $(R_DYNTRACE_BIN) -e "{1}" :::: $(EXPERIMENT_PROFILE_TRACE_INDEX_EXPR_FILEPATH) ::::+ $(EXPERIMENT_PROFILE_TRACE_INDEX_OUTDIR_FILEPATH) ::::+ $(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH))
+	mkdir -p $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)
+	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_JOBLOG_FILEPATH) --bar --eta --wd ... --jobs=70 --files --results {2}/ $(R_DYNTRACE_BIN) -f {1} :::: $(EXPERIMENT_PROFILE_TRACE_INDEX_PROGRAMS_FILEPATH) ::::+ $(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH))
 
 
 experiment-profile-analyze:
