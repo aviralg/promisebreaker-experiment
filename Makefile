@@ -142,6 +142,11 @@ EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH = $(EXPERIMENT_PROFILE_TRACE_INDE
 
 LOGS_PROFILE_TRACE_DIRPATH := $(LOGS_PROFILE_DIRPATH)/trace
 
+### experiment/profile/reduce
+ANALYSIS := signature
+EXPERIMENT_PROFILE_ANALYSIS_SCRIPT := $(PROJECT_DIRPATH)/analysis.R
+EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH := $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)/reduce-joblog
+
 ## experiment/report
 EXPERIMENT_REPORT_DIRPATH := $(EXPERIMENT_DIRPATH)/report
 LOGS_REPORT_DIRPATH := $(LOGS_DIRPATH)/report
@@ -724,8 +729,11 @@ experiment-profile-trace-programs:
 	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_JOBLOG_FILEPATH)  $(PARALLEL_ARGS) --results {1}/ $(R_DYNTRACE_BIN) --file={1}/program.R :::: $(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH))
 
 
-experiment-profile-analyze:
-	@echo TODO
+experiment-profile-analyze: experiment-profile-reduce    \
+                            experiment-profile-summarize
+
+experiment-profile-reduce:
+	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH) $(PARALLEL_ARGS) --results {1}/reduce $(R_DYNTRACE) --file=$(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --args reduce {1} {1}/reduce $(ANALYSIS) :::: $(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH))
 
 ################################################################################
 ## Experiment: Remove
