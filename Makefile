@@ -172,7 +172,8 @@ PACKAGE_LIST := installed.packages()[,1]
 ################################################################################
 ## parallel args
 ################################################################################
-PARALLEL_ARGS := --bar --eta --wd ... --jobs=$(CPU_COUNT) --files
+TIMEOUT := 7200
+PARALLEL_ARGS := --bar --eta --timeout $(TIMEOUT) --wd ... --jobs=$(CPU_COUNT) --files
 
 ################################################################################
 ## docker build args
