@@ -80,12 +80,16 @@ combine_analysis <- function(input_path, analysis) {
                            clear = FALSE,
                            width = 80)
 
-    read_df <- function(path) {
+    make_filepath <- function(path) {
         filepath <-
             c(path, "reduce", analysis) %>%
             path_join() %>%
             path_ext_set(".fst")
 
+        filepath
+    }
+
+    read_df <- function(filepath) {
         filename <- path_file(filepath)
         package <- path_file(path_dir(filepath))
         type <- path_file(path_dir(path_dir(filepath)))
@@ -93,13 +97,14 @@ combine_analysis <- function(input_path, analysis) {
         pb$tick(tokens = list(type = type, package = package, filename = filename))
 
         df <- read_fst(filepath) %>%
-              add_columns(type = type,
-                          package = package,
-                          filename = filename,
-                          .before = 1)
+              add_column(type = type,
+                         package = package,
+                         filename = filename,
+                         .before = 1)
     }
 
-    list(analysis = map_dfr(paths, read_df))
+    filepaths <- keep(map_chr(paths, make_filepath), file_exists)
+    setNames(list(map_dfr(filepaths, read_df)), analysis)
 }
 
 
