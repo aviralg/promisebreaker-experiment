@@ -11,8 +11,9 @@ library(tibble)
 library(ggplot2)
 library(lazr)
 library(fst)
+library(progress)
 
-STEPS <- c("reduce", "summarize")
+STEPS <- c("reduce", "combine", "summarize")
 ANALYSES <- c("functions", "signature", "metaprogramming", "reflection", "effects", "escaped", "total", "error")
 
 main <- function(args = commandArgs(trailingOnly = TRUE)) {
@@ -36,16 +37,22 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
         stop("unknown analysis", call. = TRUE)
     }
 
-    apply_analyses(step, input_path, output_path, analyses)
+    for(analysis in analyses) {
+        apply_analysis(step, input_path, output_path, analysis)
+    }
 }
 
-apply_analyses <- function(step, input_path, output_path, analyses) {
-    data <- dir_as_env(input_path, lazy = TRUE)
-    for(analysis in analyses) {
+
+apply_analysis <- function(step, input_path, output_path, analysis) {
+    if(step == "combine") {
+        result <- combine_analysis(input_path, analysis)
+    }
+    else if (step == "reduce") {
+        data <- dir_as_env(input_path, lazy = TRUE)
         fun_name <- paste0(step, "_", analysis)
         result <- do.call(fun_name, list(data))
-        write_analysis(result, output_path)
     }
+    write_analysis(result, output_path)
 }
 
 write_analysis <- function(data, dirpath) {
@@ -61,6 +68,45 @@ write_analysis <- function(data, dirpath) {
         }
     }
 }
+
+
+combine_analysis <- function(input_path, analysis) {
+    paths <-
+        list(c(input_path, "test"),
+             c(input_path, "testthat"),
+             c(input_path, "example"),
+             c(input_path, "vignette")) %>%
+        path_join() %>%
+        dir_ls(recurse = 0, type = "directory") %>%
+        dir_ls(recurse = 0, type = "directory")
+
+    pb <- progress_bar$new(total = length(paths),
+                           format = ":type/:package/:filename [:bar] :percent eta: :eta",
+                           clear = FALSE,
+                           width = 80)
+
+    read_df <- function(path) {
+        filepath <-
+            c(path, "reduce", analysis) %>%
+            path_join() %>%
+            path_ext_set(".fst")
+
+        filename <- path_file(filepath)
+        package <- path_file(path_dir(filepath))
+        type <- path_file(path_dir(path_dir(filepath)))
+
+        pb$tick(tokens = list(type = type, package = package, filename = filename))
+
+        df <- read_fst(filepath) %>%
+              add_columns(type = type,
+                          package = package,
+                          filename = filename,
+                          .before = 1)
+    }
+
+    list(analysis = map_dfr(paths, read_df))
+}
+
 
 ################################################################################
 ## HELPERS

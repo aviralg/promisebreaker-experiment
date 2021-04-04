@@ -277,6 +277,10 @@ define dockr_rdyntrace
 docker run $(DOCKR_RUN_ARGS) dockr $(R_DYNTRACE_BIN) -e ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
 
+define dockr_rdyntrace_file
+docker run $(DOCKR_RUN_ARGS) dockr $(R_DYNTRACE_BIN) -f ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
+endef
+
 define dockr_bash
 docker run $(DOCKR_RUN_ARGS) dockr bash -c ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
@@ -735,6 +739,9 @@ experiment-profile-analyze: experiment-profile-reduce    \
 
 experiment-profile-reduce:
 	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH) $(PARALLEL_ARGS) --results {1}/reduce $(R_DYNTRACE) --file=$(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --args reduce {1} {1}/reduce $(ANALYSIS) :::: $(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH))
+
+experiment-profile-combine:
+	$(call dockr_rdyntrace_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) combine $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)/combinelog)
 
 ################################################################################
 ## Experiment: Remove
