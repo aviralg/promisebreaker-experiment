@@ -228,8 +228,10 @@ make_signature <- function(parameters, force_lazy, effect_lazy, ref_lazy, name_s
         parameters %>%
         mutate(pack_name = unlist(map(str_split(qual_name, fixed(name_sep)), ~.[1]))) %>%
         mutate(fun_name = unlist(map(str_split(qual_name, fixed(name_sep)), splitter))) %>%
+        mutate(fun_name2 = fun_name) %>%
         group_by(pack_name, fun_name) %>%
         group_modify(~ {
+            fun_name <- first(.x$fun_name2)
 
             indices <- .x$vararg_lazy | .x$meta_lazy
             if(force_lazy) indices <- indices | .x$force_lazy
@@ -238,7 +240,7 @@ make_signature <- function(parameters, force_lazy, effect_lazy, ref_lazy, name_s
             pos <- sort(.x$formal_pos[!indices])
 
             sig <- paste("<", paste(pos, collapse = ","), ">;", sep="")
-            result <- tibble(content = paste("strict", .x$fun_name, sig, sep = " ", collapse = "\n"))
+            result <- tibble(content = paste("strict", fun_name, sig, sep = " ", collapse = "\n"))
             pb$tick(tokens = list())
             result
         }) %>%
@@ -737,3 +739,4 @@ reduce_error <- function(data) {
 }
 
 main()
+warnings()
