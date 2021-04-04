@@ -14,7 +14,6 @@ library(fst)
 library(progress)
 
 STEPS <- c("reduce", "combine", "summarize")
-ANALYSES <- c("functions", "signature", "metaprogramming", "reflection", "effects", "escaped", "total", "error")
 
 main <- function(args = commandArgs(trailingOnly = TRUE)) {
     step <- args[[1]]
@@ -32,10 +31,6 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
     output_path <- args[[3]]
 
     analyses <- as.character(unlist(args[4:length(args)]))
-
-    if(typeof(analyses) != "character" || !all(analyses %in% ANALYSES)) {
-        stop("unknown analysis", call. = TRUE)
-    }
 
     for(analysis in analyses) {
         apply_analysis(step, input_path, output_path, analysis)
