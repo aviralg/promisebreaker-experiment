@@ -12,6 +12,7 @@ library(ggplot2)
 library(lazr)
 library(fst)
 library(progress)
+library(readr)
 
 STEPS <- c("reduce", "combine", "summarize")
 
@@ -42,7 +43,7 @@ apply_analysis <- function(step, input_path, output_path, analysis) {
     if(step == "combine") {
         result <- combine_analysis(input_path, analysis)
     }
-    else if (step == "reduce") {
+    else if (step %in% c("reduce", "summarize")) {
         data <- dir_as_env(input_path, lazy = TRUE)
         fun_name <- paste0(step, "_", analysis)
         result <- do.call(fun_name, list(data))
@@ -205,61 +206,48 @@ reduce_signature <- function(data) {
 
 }
 
-param_selector <- function(force_lazy, effect_lazy, ref_lazy) {
-    function(df) {
-        df %<>%
-            filter(!vararg_lazy) %>%
-            filter(!meta_lazy)
+make_signature <- function(parameters, force_lazy, effect_lazy, ref_lazy, name_sep = "*$#$*") {
 
-        if(force_lazy)
-            df %<>% filter(!force_lazy)
+    signame <- paste("signature",
+                     c("-force", "+force")[force_lazy + 1],
+                     c("-effect", "+effect")[effect_lazy + 1],
+                     c("-reflection", "+reflection")[ref_lazy + 1],
+                     sep = "")
 
-        if(effect_lazy)
-            df %<>% filter(!effect_lazy)
-
-        if(ref_lazy)
-            df %<>% filter(!ref_lazy)
-
-        if(esc_env_lazy)
-            df %<>% filter(!esc_env_lazy)
-
-        df %>%
-            pull(formal_pos) %>%
-            sort()
-    }
-}
-
-make_signature <- function(parameter_summary, force_lazy, effect_lazy, ref_lazy name_sep = "*$#$*") {
     splitter <- function(split) {
         split <- split[-1]
         paste("`", split, "`", sep="", collapse = " ")
     }
 
-    selector <- param_selector(force_lazy = force_lazy,
-                               effect_lazy = effect_lazy,
-                               ref_lazy = ref_lazy)
+    pb <- progress_bar$new(total = length(unique(parameters$qual_name)),
+                           format = paste0(signame, " [:bar] :current/:total (:percent) eta: :eta"),
+                           clear = FALSE,
+                           width = 120)
 
     sig_tbl <-
         parameters %>%
-        group_by(qual_name) %>%
-        group_modify(~ {
-            pos <- selector(.)
-            tibble(sig = paste("<", paste(pos, collapse = ","), ">;", sep=""))
-        }) %>%
-        ungroup() %>%
         mutate(pack_name = unlist(map(str_split(qual_name, fixed(name_sep)), ~.[1]))) %>%
         mutate(fun_name = unlist(map(str_split(qual_name, fixed(name_sep)), splitter))) %>%
+        group_by(pack_name, fun_name) %>%
+        group_modify(~ {
+
+            indices <- .x$vararg_lazy | .x$meta_lazy
+            if(force_lazy) indices <- indices | .x$force_lazy
+            if(effect_lazy) indices <- indices | .x$effect_lazy
+            if(ref_lazy) indices <- indices | .x$ref_lazy
+            pos <- sort(.x$formal_pos[!indices])
+
+            sig <- paste("<", paste(pos, collapse = ","), ">;", sep="")
+            result <- tibble(content = paste("strict", .x$fun_name, sig, sep = " ", collapse = "\n"))
+            pb$tick(tokens = list())
+            result
+        }) %>%
+        ungroup() %>%
         group_by(pack_name) %>%
         group_modify(~{
-            tibble(content = paste("strict", .x$fun_name, .x$sig, sep = " ", collapse = "\n"))
+            tibble(content = paste(.x$content, collapse = "\n"))
         }) %>%
         ungroup()
-
-    signame <- paste("sig",
-                     c("-force", "+force")[force_lazy + 1],
-                     c("-effect", "+effect")[effect_lazy + 1],
-                     c("-reflection", "+reflection")[ref_lazy + 1],
-                     sep = "")
 
     signames <- paste("signatures", signame, sig_tbl$pack_name, sep ="/")
 
@@ -331,10 +319,9 @@ summarize_signature <- function(data) {
     laziness <-
         parameters %>%
         count(vararg_lazy, force_lazy, meta_lazy, effect_lazy, ref_lazy, name = "count") %>%
-        narrange(desc(count)) %>%
+        arrange(desc(count)) %>%
         mutate(perc = round(count * 100 / sum(count), 2)) %>%
         mutate(cum_perc = cumsum(perc))
-
 
     signatures <-
         c(make_signature(parameters, TRUE, TRUE, TRUE),
@@ -346,7 +333,7 @@ summarize_signature <- function(data) {
           make_signature(parameters, FALSE, FALSE, TRUE),
           make_signature(parameters, FALSE, FALSE, FALSE))
 
-    c(list(arguments = arguments, laziness = laziness), signatures)
+    c(list(parameters = parameters, laziness = laziness), signatures)
 }
 
 ################################################################################
