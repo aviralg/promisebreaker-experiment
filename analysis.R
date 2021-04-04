@@ -205,8 +205,69 @@ reduce_signature <- function(data) {
 
 }
 
+param_selector <- function(force_lazy, effect_lazy, ref_lazy) {
+    function(df) {
+        df %<>%
+            filter(!vararg_lazy) %>%
+            filter(!meta_lazy)
+
+        if(force_lazy)
+            df %<>% filter(!force_lazy)
+
+        if(effect_lazy)
+            df %<>% filter(!effect_lazy)
+
+        if(ref_lazy)
+            df %<>% filter(!ref_lazy)
+
+        if(esc_env_lazy)
+            df %<>% filter(!esc_env_lazy)
+
+        df %>%
+            pull(formal_pos) %>%
+            sort()
+    }
+}
+
+make_signature <- function(parameter_summary, force_lazy, effect_lazy, ref_lazy name_sep = "*$#$*") {
+    splitter <- function(split) {
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    selector <- param_selector(force_lazy = force_lazy,
+                               effect_lazy = effect_lazy,
+                               ref_lazy = ref_lazy)
+
+    sig_tbl <-
+        parameters %>%
+        group_by(qual_name) %>%
+        group_modify(~ {
+            pos <- selector(.)
+            tibble(sig = paste("<", paste(pos, collapse = ","), ">;", sep=""))
+        }) %>%
+        ungroup() %>%
+        mutate(pack_name = unlist(map(str_split(qual_name, fixed(name_sep)), ~.[1]))) %>%
+        mutate(fun_name = unlist(map(str_split(qual_name, fixed(name_sep)), splitter))) %>%
+        group_by(pack_name) %>%
+        group_modify(~{
+            tibble(content = paste("strict", .x$fun_name, .x$sig, sep = " ", collapse = "\n"))
+        }) %>%
+        ungroup()
+
+    signame <- paste("sig",
+                     c("-force", "+force")[force_lazy + 1],
+                     c("-effect", "+effect")[effect_lazy + 1],
+                     c("-reflection", "+reflection")[ref_lazy + 1],
+                     sep = "")
+
+    signames <- paste("signatures", signame, sig_tbl$pack_name, sep ="/")
+
+    setNames(sig_tbl$content, signames)
+}
+
 summarize_signature <- function(data) {
-    arguments <-
+    parameters <-
         data$arguments %>%
         group_by(qual_name, anonymous, formal_pos) %>%
         summarize(arg_name = first(arg_name),
@@ -266,7 +327,26 @@ summarize_signature <- function(data) {
                pos_env_lazy = pos_env_tot != 0,
                ref_lazy = as_env_lazy | pos_env_lazy)
 
-    list(arguments = arguments)
+
+    laziness <-
+        parameters %>%
+        count(vararg_lazy, force_lazy, meta_lazy, effect_lazy, ref_lazy, name = "count") %>%
+        narrange(desc(count)) %>%
+        mutate(perc = round(count * 100 / sum(count), 2)) %>%
+        mutate(cum_perc = cumsum(perc))
+
+
+    signatures <-
+        c(make_signature(parameters, TRUE, TRUE, TRUE),
+          make_signature(parameters, TRUE, TRUE, FALSE),
+          make_signature(parameters, TRUE, FALSE, TRUE),
+          make_signature(parameters, TRUE, FALSE, FALSE),
+          make_signature(parameters, FALSE, TRUE, TRUE),
+          make_signature(parameters, FALSE, TRUE, FALSE),
+          make_signature(parameters, FALSE, FALSE, TRUE),
+          make_signature(parameters, FALSE, FALSE, FALSE))
+
+    c(list(arguments = arguments, laziness = laziness), signatures)
 }
 
 ################################################################################

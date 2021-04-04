@@ -148,8 +148,10 @@ EXPERIMENT_PROFILE_ANALYSIS_SCRIPT := $(PROJECT_DIRPATH)/analysis.R
 EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH := $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)/reduce-joblog
 
 ### experiment/profile/combine
-ANALYSIS := signature
 EXPERIMENT_PROFILE_COMBINE_DIRPATH := $(EXPERIMENT_PROFILE_DIRPATH)/combine
+
+### experiment/profile/summarize
+EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH := $(EXPERIMENT_PROFILE_DIRPATH)/summarize
 
 ## experiment/report
 EXPERIMENT_REPORT_DIRPATH := $(EXPERIMENT_DIRPATH)/report
@@ -747,6 +749,10 @@ experiment-profile-reduce:
 experiment-profile-combine:
 	mkdir -p $(EXPERIMENT_PROFILE_COMBINE_DIRPATH)
 	$(call dockr_rdyntrace_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --slave --args combine $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) $(EXPERIMENT_PROFILE_COMBINE_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_COMBINE_DIRPATH)/log)
+
+experiment-profile-summarize:
+	mkdir -p $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)
+	$(call dockr_rdyntrace_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --slave --args summarize $(EXPERIMENT_PROFILE_COMBINE_DIRPATH) $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)/log)
 
 ################################################################################
 ## Experiment: Remove
