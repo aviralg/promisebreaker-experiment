@@ -738,7 +738,7 @@ experiment-profile-analyze: experiment-profile-reduce    \
                             experiment-profile-summarize
 
 experiment-profile-reduce:
-	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH) $(PARALLEL_ARGS) --results {1}/reduce $(R_DYNTRACE) --file=$(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --args reduce {1} {1}/reduce $(ANALYSIS) :::: $(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH))
+	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH) $(PARALLEL_ARGS) --results {1}/reduce/ $(R_DYNTRACE_BIN) --file=$(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --args reduce {1} {1}/reduce $(ANALYSIS) ::: $(shell find $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) -mindepth 3 -maxdepth 3 -type d))
 
 experiment-profile-combine:
 	$(call dockr_rdyntrace_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) combine $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)/combinelog)
