@@ -76,7 +76,7 @@ combine_analysis <- function(input_path, analysis) {
         dir_ls(recurse = 0, type = "directory")
 
     pb <- progress_bar$new(total = length(paths),
-                           format = ":type/:package/:filename [:bar] :percent eta: :eta",
+                           format = ":type/:package/:filename [:bar] :current/:total (:percent) eta: :eta",
                            clear = FALSE,
                            width = 80)
 
