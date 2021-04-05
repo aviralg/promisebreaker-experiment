@@ -24,39 +24,62 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
     joblog_tab <- read_joblogs(joblog_dir)
 
     run_tab <-
-        program_dir %>%
-        left_join(joblog_dir, by = c("signature", "seq"))
+        validation_run_tab %>%
+        left_join(joblog_tab, by = c("signature", "seq"))
 
     str(run_tab)
 
-    signatures <- unique(run_tab$signature)
+    signatures <- unique(joblog_tab$signature)
+    print(signatures)
 
     status_tab <-
         run_tab %>%
         select(type, package, filename, signature, exitval) %>%
+        filter(signature %in% signatures) %>%
         pivot_wider(names_from = signature,
                     values_from = exitval,
                     values_fill = NA_real_) %>%
-        filter(
-            across(
-                .cols = signatures,
-                .fns = ~ !is.na(.x)
-            )
-        ) %>%
-        select(-type, -package, -filename) %>%
-        count(everything(), name = "count")
+        count(`lazy-1`,
+              `lazy-2`,
+              `signature+force+effect+reflection`,
+              `signature+force+effect-reflection`,
+              `signature+force-effect+reflection`,
+              `signature+force-effect-reflection`,
+              `signature-force+effect+reflection`,
+              `signature-force+effect-reflection`,
+              `signature-force-effect+reflection`,
+              `signature-force-effect-reflection`,
+              name = "count")
+
+    run_tab %>%
+        filter(signature %in% c("signature+force+effect+reflection", "lazy-1")) %>%
+        group_by(type, package, filename) %>%
+        summarize(failed = exitval[1] != exitval[2]) %>%
+        ungroup() %>%
+        filter(failed) %>%
+        print()
 
 
     print(status_tab)
+
+    write_csv(status_tab, "/tmp/status.csv")
+
+
+    #filter(
+    #    across(
+    #        .cols = all_of(signatures),
+    #        .fns = ~ !is.na(.x)
+    #    )
+    #) %>%
 
 }
 
 read_validation_runs <- function(program_dir) {
     paths <-
-        list(c(program_dirpath, "test"),
-             c(program_dirpath, "testthat"),
-             c(program_dirpath, "example"),
-             c(program_dirpath, "vignette")) %>%
+        list(c(program_dir, "test"),
+             c(program_dir, "testthat"),
+             c(program_dir, "example"),
+             c(program_dir, "vignette")) %>%
         path_join() %>%
         dir_ls(recurse = 0, type = "directory") %>%
         dir_ls(recurse = 0, type = "directory") %>%
@@ -65,22 +88,40 @@ read_validation_runs <- function(program_dir) {
     pb <- progress_bar$new(total = length(paths),
                            format = ":type/:package/:filename [:bar] :current/:total (:percent) eta: :eta",
                            clear = FALSE,
-                           width = 80)
+                           width = 120)
 
     read_run <- function(dirpath) {
         signature <- path_file(dirpath)
-        filename <- path_file(path_dir(filepath))
-        package <- path_file(path_dir(path_dir(filepath)))
-        type <- path_file(path_dir(path_dir(path_dir(filepath))))
+        filename <- path_file(path_dir(dirpath))
+        package <- path_file(path_dir(path_dir(dirpath)))
+        type <- path_file(path_dir(path_dir(path_dir(dirpath))))
+
+        read_seq <- function(file) {
+            if(file_exists(file)) {
+                as.integer(str_trim(read_file(path_join(c(dirpath, "seq")))))
+            }
+            else {
+                NA_integer_
+            }
+        }
+
+        read_file_checked <- function(file) {
+            if(file_exists(file)) {
+                read_file(file)
+            }
+            else {
+                NA_character_
+            }
+        }
 
         result <- tibble(dirpath = dirpath,
                          type = type,
                          package = package,
                          filename = filename,
                          signature = signature,
-                         seq = as.integer(str_trim(read_file(path_join(c(dirpath, "seq"))))),
-                         stderr = read_file(path_join(c(dirpath, "stderr"))),
-                         stdout = read_file(path_join(c(dirpath, "stdout"))))
+                         seq = read_seq(path_join(c(dirpath, "seq"))),
+                         stderr = read_file_checked(path_join(c(dirpath, "stderr"))),
+                         stdout = read_file_checked(path_join(c(dirpath, "stdout"))))
 
         pb$tick(tokens = list(type = type, package = package, filename = filename))
 
@@ -111,10 +152,12 @@ read_joblogs <- function(joblog_dir) {
                    signal = Signal,
                    command = Command)
 
+        str(result)
+
         result
     }
 
-    joblog_files <- dir_ls(path_join, recurse = 0, type = "file")
+    joblog_files <- dir_ls(joblog_dir, recurse = 0, type = "file")
 
     map_dfr(joblog_files, read_joblog)
 }
