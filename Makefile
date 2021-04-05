@@ -160,6 +160,28 @@ EXPERIMENT_PROFILE_COMBINE_DIRPATH := $(EXPERIMENT_PROFILE_DIRPATH)/combine
 ### experiment/profile/summarize
 EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH := $(EXPERIMENT_PROFILE_DIRPATH)/summarize
 
+## experiment/validate
+SIGNATURE := signature+force+effect+reflection
+EXPERIMENT_VALIDATE_DIRPATH := $(EXPERIMENT_DIRPATH)/validate
+LOGS_VALIDATE_DIRPATH := $(LOGS_DIRPATH)/validate
+
+### experiment/validate/trace
+EXPERIMENT_VALIDATE_TRACE_DIRPATH := $(EXPERIMENT_VALIDATE_DIRPATH)/trace
+
+EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH := $(EXPERIMENT_VALIDATE_TRACE_DIRPATH)/programs
+EXPERIMENT_VALIDATE_TRACE_PROGRAMS_JOBLOG_DIRPATH := $(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)/joblog
+
+EXPERIMENT_VALIDATE_TRACE_INDEX_DIRPATH := $(EXPERIMENT_VALIDATE_TRACE_DIRPATH)/index
+EXPERIMENT_VALIDATE_TRACE_INDEX_PROGRAMS_FILEPATH = $(EXPERIMENT_VALIDATE_TRACE_INDEX_DIRPATH)/programs
+EXPERIMENT_VALIDATE_TRACE_INDEX_OUTDIR_FILEPATH = $(EXPERIMENT_VALIDATE_TRACE_INDEX_DIRPATH)/outdir
+EXPERIMENT_VALIDATE_TRACE_INDEX_LOGDIR_FILEPATH = $(EXPERIMENT_VALIDATE_TRACE_INDEX_DIRPATH)/logdir
+EXPERIMENT_VALIDATE_TRACE_INDEX_CORPUS_FILEPATH = $(EXPERIMENT_VALIDATE_TRACE_INDEX_DIRPATH)/corpus
+EXPERIMENT_VALIDATE_TRACE_INDEX_CLIENT_FILEPATH = $(EXPERIMENT_VALIDATE_TRACE_INDEX_DIRPATH)/client
+
+LOGS_VALIDATE_TRACE_DIRPATH := $(LOGS_VALIDATE_DIRPATH)/trace
+
+
+
 ## experiment/report
 EXPERIMENT_REPORT_DIRPATH := $(EXPERIMENT_DIRPATH)/report
 LOGS_REPORT_DIRPATH := $(LOGS_DIRPATH)/report
@@ -781,15 +803,43 @@ experiment-profile-summarize:
 	$(call dockr_rdyntrace_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --slave --args summarize $(EXPERIMENT_PROFILE_COMBINE_DIRPATH) $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)/log)
 
 ################################################################################
-## Experiment: Remove
+## Experiment: Validate
 ################################################################################
-experiment-remove: experiment-remove-drive    \
-                   experiment-remove-trace    \
-                   experiment-remove-analyze
+experiment-validate: experiment-validate-trace-index     \
+                     experiment-validate-trace-programs
 
-experiment-remove-drive:
+define EXPERIMENT_VALIDATE_TRACE_INDEX_CODE
+library(experimentr);
+invisible(tracing_index('$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)', '$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)', '$(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)', '$(EXPERIMENT_VALIDATE_TRACE_INDEX_PROGRAMS_FILEPATH)', '$(EXPERIMENT_VALIDATE_TRACE_INDEX_LOGDIR_FILEPATH)',
+                          packages = readr::read_lines('$(EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH)'),
+                          test_wrapper = 'strictr::initialize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]])\n{code}\nstrictr::finalize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]], fst::write_fst)',
+                          testthat_wrapper = 'strictr::initialize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]])\ntestthat::test_file(\'{file}\', package=\'{package}\')\nstrictr::finalize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]], fst::write_fst)',
+                          example_wrapper = 'strictr::initialize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]])\n{code}\nstrictr::finalize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]], fst::write_fst)',
+                          vignette_wrapper = 'strictr::initialize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]])\n{code}\nstrictr::finalize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]], fst::write_fst)'));
+endef
 
-experiment-remove-trace:
+experiment-validate-trace-index:
+	mkdir -p $(EXPERIMENT_VALIDATE_TRACE_INDEX_DIRPATH)
+	mkdir -p $(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)
+	mkdir -p $(LOGS_VALIDATE_TRACE_DIRPATH)
+	$(call dockr_rvanilla, "$(subst $(newline), ,$(EXPERIMENT_VALIDATE_TRACE_INDEX_CODE))", $(EXPERIMENT_VALIDATE_TRACE_INDEX_DIRPATH)/log)
+
+experiment-validate-trace-programs:
+	mkdir -p $(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)
+	mkdir -p $(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_JOBLOG_DIRPATH)
+	$(call dockr_parallel, --joblog $(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_JOBLOG_DIRPATH)/$(SIGNATURE)  $(PARALLEL_ARGS) --results {1}/$(SIGNATURE)/ $(R_VANILLA_BIN) --slave --file={1}/program.R --args {1} $(SIGNATURE) "2>&1" :::: $(EXPERIMENT_VALIDATE_TRACE_INDEX_LOGDIR_FILEPATH))
+
+experiment-validate-trace-programs-all:
+	-make experiment-validate-trace-programs SIGNATURE=lazy-1
+	-make experiment-validate-trace-programs SIGNATURE=lazy-2
+	-make experiment-validate-trace-programs SIGNATURE=signature+force+effect+reflection
+	-make experiment-validate-trace-programs SIGNATURE=signature+force+effect-reflection
+	-make experiment-validate-trace-programs SIGNATURE=signature+force-effect+reflection
+	-make experiment-validate-trace-programs SIGNATURE=signature+force-effect-reflection
+	-make experiment-validate-trace-programs SIGNATURE=signature-force+effect+reflection
+	-make experiment-validate-trace-programs SIGNATURE=signature-force+effect-reflection
+	-make experiment-validate-trace-programs SIGNATURE=signature-force-effect+reflection
+	-make experiment-validate-trace-programs SIGNATURE=signature-force-effect-reflection
 
 ################################################################################
 ## experiment/report
