@@ -29,6 +29,13 @@ DOCKR_GIT_URL := $(AVIRALG_GIT_URL)/dockr.git
 DEPENDENCY_DOCKR_DIRPATH := $(DEPENDENCY_DIRPATH)/dockr
 LOGS_DEPENDENCY_DOCKR_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/dockr/
 
+## dependency/r-vanilla
+R_VANILLA_BRANCH := r-4.0.2
+R_VANILLA_GIT_URL := $(PRL_PRG_GIT_URL)/R-vanilla.git
+DEPENDENCY_R_VANILLA_DIRPATH := $(DEPENDENCY_DIRPATH)/R-vanilla
+LOGS_DEPENDENCY_R_VANILLA_DIRPATH := $(LOGS_DEPENDENCY_DIRPATH)/R-vanilla
+R_VANILLA_BIN := $(DEPENDENCY_R_VANILLA_DIRPATH)/bin/R
+
 ## dependency/r-dyntrace
 R_DYNTRACE_BRANCH := r-4.0.2
 R_DYNTRACE_GIT_URL := $(PRL_PRG_GIT_URL)/R-dyntrace.git
@@ -287,6 +294,14 @@ define dockr_rdyntrace_file
 docker run $(DOCKR_RUN_ARGS) dockr $(R_DYNTRACE_BIN) -f ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
 
+define dockr_rvanilla
+docker run $(DOCKR_RUN_ARGS) dockr $(R_VANILLA_BIN) -e ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
+endef
+
+define dockr_rvanilla_file
+docker run $(DOCKR_RUN_ARGS) dockr $(R_VANILLA_BIN) -f ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
+endef
+
 define dockr_bash
 docker run $(DOCKR_RUN_ARGS) dockr bash -c ${1} 2>&1 | $(TEE) $(TEE_FLAGS) ${2}
 endef
@@ -320,6 +335,7 @@ install-custom-packages:
 ################################################################################
 
 dependency: dependency-dockr       \
+            dependency-r-vanilla   \
             dependency-r-dyntrace  \
             dependency-library     \
             dependency-instrumentr \
@@ -344,6 +360,16 @@ dependency-dockr:
 	       --build-arg R_LIBS_USER=$(R_LIBS_USER)  \
 	       --tag dockr                             \
 	       $(DEPENDENCY_DOCKR_DIRPATH) 2>&1 | $(TEE) $(TEE_FLAGS) $(LOGS_DEPENDENCY_DOCKR_DIRPATH)/build.log
+
+################################################################################
+## dependency/r-vanilla
+################################################################################
+
+dependency-r-vanilla:
+	mkdir -p $(DEPENDENCY_DIRPATH)
+	mkdir -p $(LOGS_DEPENDENCY_R_VANILLA_DIRPATH)
+	$(call clonepull, $(R_VANILLA_BRANCH), $(R_VANILLA_GIT_URL), $(DEPENDENCY_R_VANILLA_DIRPATH), $(LOGS_DEPENDENCY_R_VANILLA_DIRPATH)/clone.log)
+	$(call dockr_bash, 'cd $(DEPENDENCY_R_VANILLA_DIRPATH) && ./build', $(LOGS_DEPENDENCY_R_VANILLA_DIRPATH)/build.log)
 
 ################################################################################
 ## dependency/r-dyntrace
