@@ -219,25 +219,34 @@ make_signature <- function(parameters, force_lazy, effect_lazy, ref_lazy, name_s
         paste("`", split, "`", sep="", collapse = " ")
     }
 
-    pb <- progress_bar$new(total = length(unique(parameters$qual_name)),
+    sig_tbl <-
+        parameters %>%
+        mutate(pack_name = unlist(map(str_split(qual_name, fixed(name_sep)), ~.[1]))) %>%
+        mutate(fun_name = unlist(map(str_split(qual_name, fixed(name_sep)), splitter))) %>%
+        mutate(outer = unlist(map(str_split(qual_name, fixed(name_sep)), length)) == 2) %>%
+        filter(pack_name != "<NA>" & outer)
+
+    pb <- progress_bar$new(total = length(unique(sig_tbl$qual_name)),
                            format = paste0(signame, " [:bar] :current/:total (:percent) eta: :eta"),
                            clear = FALSE,
                            width = 120)
 
     sig_tbl <-
-        parameters %>%
-        mutate(pack_name = unlist(map(str_split(qual_name, fixed(name_sep)), ~.[1]))) %>%
-        mutate(fun_name = unlist(map(str_split(qual_name, fixed(name_sep)), splitter))) %>%
-        mutate(fun_name2 = fun_name) %>%
+        sig_tbl %>%
+        mutate(pack_name2 = pack_name,
+               fun_name2 = fun_name) %>%
         group_by(pack_name, fun_name) %>%
         group_modify(~ {
             fun_name <- first(.x$fun_name2)
+            is_base <- first(.x$pack_name2) == "base"
 
             indices <- .x$vararg_lazy | .x$meta_lazy
-            if(force_lazy) indices <- indices | .x$force_lazy
-            if(effect_lazy) indices <- indices | .x$effect_lazy
-            if(ref_lazy) indices <- indices | .x$ref_lazy
-            pos <- sort(.x$formal_pos[!indices])
+
+            if(force_lazy | is_base) indices <- indices | .x$force_lazy
+            if(effect_lazy | is_base) indices <- indices | .x$effect_lazy
+            if(ref_lazy | is_base) indices <- indices | .x$ref_lazy
+
+            pos <- 1 + sort(.x$formal_pos[!indices])
 
             sig <- paste("<", paste(pos, collapse = ","), ">;", sep="")
             result <- tibble(content = paste("strict", fun_name, sig, sep = " ", collapse = "\n"))
@@ -245,6 +254,7 @@ make_signature <- function(parameters, force_lazy, effect_lazy, ref_lazy, name_s
             result
         }) %>%
         ungroup() %>%
+        filter(pack_name != "<NA>") %>%
         group_by(pack_name) %>%
         group_modify(~{
             tibble(content = paste(.x$content, collapse = "\n"))
@@ -325,15 +335,19 @@ summarize_signature <- function(data) {
         mutate(perc = round(count * 100 / sum(count), 2)) %>%
         mutate(cum_perc = cumsum(perc))
 
+    non_anon_parameters <-
+        parameters %>%
+        filter(!anonymous)
+
     signatures <-
-        c(make_signature(parameters, TRUE, TRUE, TRUE),
-          make_signature(parameters, TRUE, TRUE, FALSE),
-          make_signature(parameters, TRUE, FALSE, TRUE),
-          make_signature(parameters, TRUE, FALSE, FALSE),
-          make_signature(parameters, FALSE, TRUE, TRUE),
-          make_signature(parameters, FALSE, TRUE, FALSE),
-          make_signature(parameters, FALSE, FALSE, TRUE),
-          make_signature(parameters, FALSE, FALSE, FALSE))
+        c(make_signature(non_anon_parameters, TRUE, TRUE, TRUE),
+          make_signature(non_anon_parameters, TRUE, TRUE, FALSE),
+          make_signature(non_anon_parameters, TRUE, FALSE, TRUE),
+          make_signature(non_anon_parameters, TRUE, FALSE, FALSE),
+          make_signature(non_anon_parameters, FALSE, TRUE, TRUE),
+          make_signature(non_anon_parameters, FALSE, TRUE, FALSE),
+          make_signature(non_anon_parameters, FALSE, FALSE, TRUE),
+          make_signature(non_anon_parameters, FALSE, FALSE, FALSE))
 
     c(list(parameters = parameters, laziness = laziness), signatures)
 }
