@@ -792,15 +792,15 @@ experiment-profile-analyze: experiment-profile-reduce    \
                             experiment-profile-summarize
 
 experiment-profile-reduce:
-	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH) $(PARALLEL_ARGS) --results {1}/reduce/ $(R_DYNTRACE_BIN) --file=$(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --args reduce {1} {1}/reduce $(ANALYSIS) ::: $(shell find $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) -mindepth 3 -maxdepth 3 -type d))
+	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH) $(PARALLEL_ARGS) --results {1}/reduce/ $(R_VANILLA_BIN) --file=$(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --args reduce {1} {1}/reduce $(ANALYSIS) ::: $(shell find $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) -mindepth 3 -maxdepth 3 -type d))
 
 experiment-profile-combine:
 	mkdir -p $(EXPERIMENT_PROFILE_COMBINE_DIRPATH)
-	$(call dockr_rdyntrace_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --slave --args combine $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) $(EXPERIMENT_PROFILE_COMBINE_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_COMBINE_DIRPATH)/log)
+	$(call dockr_rvanilla_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --slave --args combine $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) $(EXPERIMENT_PROFILE_COMBINE_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_COMBINE_DIRPATH)/log)
 
 experiment-profile-summarize:
 	mkdir -p $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)
-	$(call dockr_rdyntrace_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --slave --args summarize $(EXPERIMENT_PROFILE_COMBINE_DIRPATH) $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)/log)
+	$(call dockr_rvanilla_file, $(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --slave --args summarize $(EXPERIMENT_PROFILE_COMBINE_DIRPATH) $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)/log)
 
 ################################################################################
 ## Experiment: Validate

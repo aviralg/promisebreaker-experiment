@@ -9,7 +9,6 @@ library(stringr)
 library(magrittr)
 library(tibble)
 library(ggplot2)
-library(lazr)
 library(fst)
 library(progress)
 library(readr)
@@ -57,7 +56,7 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
         summarize(failed = exitval[1] != exitval[2]) %>%
         ungroup() %>%
         filter(failed) %>%
-        print()
+        print(n = Inf)
 
 
     print(status_tab)
