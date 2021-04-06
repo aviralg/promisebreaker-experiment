@@ -767,7 +767,7 @@ experiment-profile-trace: experiment-profile-example  \
 
 define EXPERIMENT_PROFILE_TRACE_INDEX_CODE
 library(experimentr);
-invisible(select_packages(rank = 1:100, corpusfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH)', clientfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH)'));
+invisible(select_packages(rank = 1:500, corpusfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH)', clientfile='$(EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH)'));
 invisible(tracing_index('$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)', '$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)', '$(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH)', '$(EXPERIMENT_PROFILE_TRACE_INDEX_PROGRAMS_FILEPATH)', '$(EXPERIMENT_PROFILE_TRACE_INDEX_LOGDIR_FILEPATH)',
                           packages = readr::read_lines('$(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH)'),
                           test_wrapper = 'library(lazr)\ntrace <- trace_expr({{\n{code}\n}})\nlibrary(experimentr)\nwrite_trace(trace, \'{outdir}\')',
@@ -792,7 +792,9 @@ experiment-profile-analyze: experiment-profile-reduce    \
                             experiment-profile-summarize
 
 experiment-profile-reduce:
-	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH) $(PARALLEL_ARGS) --results {1}/reduce/ $(R_VANILLA_BIN) --file=$(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --args reduce {1} {1}/reduce $(ANALYSIS) ::: $(shell find $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) -mindepth 3 -maxdepth 3 -type d))
+	$(shell find $(EXPERIMENT_PROFILE_TRACE_PROGRAMS_DIRPATH) -mindepth 3 -maxdepth 3 -type d > $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/reduce-index)
+	$(call dockr_parallel, --joblog $(EXPERIMENT_PROFILE_REDUCE_PROGRAMS_JOBLOG_FILEPATH) $(PARALLEL_ARGS) --results {1}/reduce/ $(R_VANILLA_BIN) --file=$(EXPERIMENT_PROFILE_ANALYSIS_SCRIPT) --args reduce {1} {1}/reduce $(ANALYSIS) :::: $(EXPERIMENT_PROFILE_TRACE_INDEX_DIRPATH)/reduce-index)
+
 
 experiment-profile-combine:
 	mkdir -p $(EXPERIMENT_PROFILE_COMBINE_DIRPATH)
