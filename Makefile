@@ -849,6 +849,23 @@ experiment-validate-trace-programs-all:
 	-make experiment-validate-trace-programs TIMEOUT=300 SIGNATURE=signature-force-effect+reflection
 	-make experiment-validate-trace-programs TIMEOUT=300 SIGNATURE=signature-force-effect-reflection
 
+experiment-validate-retrace-programs:
+	$(call dockr_parallel, --resume-failed --joblog $(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_JOBLOG_DIRPATH)/$(SIGNATURE)  $(PARALLEL_ARGS) --results {1}/$(SIGNATURE)/ $(R_VANILLA_BIN) --slave --file={1}/program.R --args {1} $(SIGNATURE) "2>&1" :::: $(EXPERIMENT_VALIDATE_TRACE_INDEX_LOGDIR_FILEPATH))
+
+experiment-validate-retrace-programs-all:
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=lazy-1
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=lazy-2
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=signature+force+effect+reflection
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=signature+force+effect-reflection
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=signature+force-effect+reflection
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=signature+force-effect-reflection
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=signature-force+effect+reflection
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=signature-force+effect-reflection
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=signature-force-effect+reflection
+	-make experiment-validate-retrace-programs TIMEOUT=3000 SIGNATURE=signature-force-effect-reflection
+
+
+
 experiment-validate-run-program:
 	docker run -i $(DOCKR_RUN_ARGS) dockr $(R_VANILLA_BIN) --debugger=gdb --file=$(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)/$(TYPE)/$(PACKAGE)/$(FILENAME)/program.R --args $(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)/$(TYPE)/$(PACKAGE)/$(FILENAME) $(SIGNATURE)
 
