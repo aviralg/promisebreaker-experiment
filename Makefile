@@ -180,6 +180,9 @@ EXPERIMENT_VALIDATE_TRACE_INDEX_CLIENT_FILEPATH = $(EXPERIMENT_VALIDATE_TRACE_IN
 
 LOGS_VALIDATE_TRACE_DIRPATH := $(LOGS_VALIDATE_DIRPATH)/trace
 
+TYPE := example
+PACKAGE := ACNE
+FILENAME := fitSnpNmfArray
 
 
 ## experiment/report
@@ -842,6 +845,10 @@ experiment-validate-trace-programs-all:
 	-make experiment-validate-trace-programs SIGNATURE=signature-force+effect-reflection
 	-make experiment-validate-trace-programs SIGNATURE=signature-force-effect+reflection
 	-make experiment-validate-trace-programs SIGNATURE=signature-force-effect-reflection
+experiment-validate-run-program:
+	docker run -i $(DOCKR_RUN_ARGS) dockr $(R_VANILLA_BIN) --debugger=gdb --file=$(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)/$(TYPE)/$(PACKAGE)/$(FILENAME)/program.R --args $(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)/$(TYPE)/$(PACKAGE)/$(FILENAME) $(SIGNATURE)
+
+
 
 ################################################################################
 ## experiment/report
