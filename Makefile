@@ -163,6 +163,10 @@ EXPERIMENT_PROFILE_COMBINE_DIRPATH := $(EXPERIMENT_PROFILE_DIRPATH)/combine
 ### experiment/profile/summarize
 EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH := $(EXPERIMENT_PROFILE_DIRPATH)/summarize
 
+### experiment/profile/signature
+ANALYSIS_SIGNATURE_SCRIPT := $(ANALYSIS_DIRPATH)/signature.R
+EXPERIMENT_PROFILE_SIGNATURE_DIRPATH := $(EXPERIMENT_PROFILE_DIRPATH)/signature
+
 ## experiment/validate
 SIGNATURE := signature+force+effect+reflection
 EXPERIMENT_VALIDATE_DIRPATH := $(EXPERIMENT_DIRPATH)/validate
@@ -812,6 +816,10 @@ experiment-profile-combine:
 experiment-profile-summarize:
 	mkdir -p $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)
 	$(call dockr_rvanilla_file, $(ANALYSIS_PROFILE_SCRIPT) --slave --args summarize $(EXPERIMENT_PROFILE_COMBINE_DIRPATH) $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH) $(ANALYSIS), $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)/log)
+
+experiment-profile-signature:
+	mkdir -p $(EXPERIMENT_PROFILE_SIGNATURE_DIRPATH)
+	docker run $(DOCKR_RUN_ARGS) dockr $(R_VANILLA_BIN) --slave --file=$(ANALYSIS_SIGNATURE_SCRIPT) --args $(EXPERIMENT_PROFILE_SUMMARIZE_DIRPATH)/parameters.fst $(EXPERIMENT_PROFILE_TRACE_INDEX_CORPUS_FILEPATH) $(EXPERIMENT_PROFILE_SIGNATURE_DIRPATH)
 
 ################################################################################
 ## Experiment: Validate
