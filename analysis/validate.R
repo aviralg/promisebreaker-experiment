@@ -18,6 +18,7 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
 
     program_dir <- args[[1]]
     joblog_dir <- args[[2]]
+    summary_dir <- args[[3]]
 
     validation_run_tab <- read_validation_runs(program_dir)
     joblog_tab <- read_joblogs(joblog_dir)
@@ -50,6 +51,25 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
               `signature-force-effect-reflection`,
               name = "count")
 
+    output_tab <-
+        run_tab %>%
+        select(type, package, filename, signature, stdout) %>%
+        filter(signature %in% signatures) %>%
+        pivot_wider(names_from = signature,
+                    values_from = stdout,
+                    values_fill = "") %>%
+        mutate(`lazy-2` = `lazy-2` == `lazy-1`,
+               `signature+force+effect+reflection` = `signature+force+effect+reflection` == `lazy-1`,
+               `signature+force+effect-reflection` = `signature+force+effect-reflection` == `lazy-1`,
+               `signature+force-effect+reflection` = `signature+force-effect+reflection` == `lazy-1`,
+               `signature+force-effect-reflection` = `signature+force-effect-reflection` == `lazy-1`,
+               `signature-force+effect+reflection` = `signature-force+effect+reflection` == `lazy-1`,
+               `signature-force+effect-reflection` = `signature-force+effect-reflection` == `lazy-1`,
+               `signature-force-effect+reflection` = `signature-force-effect+reflection` == `lazy-1`,
+               `signature-force-effect-reflection` = `signature-force-effect-reflection` == `lazy-1`,
+               `lazy-1` = TRUE)
+
+    print("Different exitcode")
     run_tab %>%
         filter(signature %in% c("signature+force+effect+reflection", "lazy-1")) %>%
         group_by(type, package, filename) %>%
@@ -58,10 +78,39 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
         filter(failed) %>%
         print(n = Inf)
 
+    print("Different stdout")
+    diff_stdout <-
+        output_tab %>%
+        mutate(failed = `lazy-2` == TRUE & `signature+force+effect+reflection` == FALSE) %>%
+        filter(failed) %>%
+        distinct(type, package, filename)
+    
+    diff_stdout %>%
+        count(type, name = "count") %>%
+        print()
+
+    diff_stdout %>%
+        print(n = 100)
 
     print(status_tab)
 
-    write_csv(status_tab, "/tmp/status.csv")
+    output_tab %>%
+    count(`lazy-1`,
+          `lazy-2`,
+          `signature+force+effect+reflection`,
+          `signature+force+effect-reflection`,
+          `signature+force-effect+reflection`,
+          `signature+force-effect-reflection`,
+          `signature-force+effect+reflection`,
+          `signature-force+effect-reflection`,
+          `signature-force-effect+reflection`,
+          `signature-force-effect-reflection`,
+          name = "count") %>%
+    print(n = Inf)
+
+    write_fst(run_tab, path_join(c(summary_dir, "run_tab.fst")))
+    write_csv(status_tab, path_join(c(summary_dir, "exitcode.csv")))
+    write_csv(output_tab, path_join(c(summary_dir, "stdout.csv")))
 
 
     #filter(
@@ -149,7 +198,10 @@ read_joblogs <- function(joblog_dir) {
                    receive = Receive,
                    exitval = Exitval,
                    signal = Signal,
-                   command = Command)
+                   command = Command) %>%
+            group_by(seq) %>%
+            filter(row_number() == n()) %>%
+            ungroup()
 
         str(result)
 
