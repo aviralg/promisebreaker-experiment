@@ -819,7 +819,7 @@ experiment-validate: experiment-validate-trace-index     \
 define EXPERIMENT_VALIDATE_TRACE_INDEX_CODE
 library(experimentr);
 invisible(tracing_index('$(EXPERIMENT_CORPUS_EXTRACT_INDEX_FILEPATH)', '$(EXPERIMENT_CORPUS_EXTRACT_PROGRAMS_DIRPATH)', '$(EXPERIMENT_VALIDATE_TRACE_PROGRAMS_DIRPATH)', '$(EXPERIMENT_VALIDATE_TRACE_INDEX_PROGRAMS_FILEPATH)', '$(EXPERIMENT_VALIDATE_TRACE_INDEX_LOGDIR_FILEPATH)',
-                          packages = readr::read_lines('$(EXPERIMENT_PROFILE_TRACE_INDEX_CLIENT_FILEPATH)'),
+                          packages = readr::read_lines('$(EXPERIMENT_VALIDATE_TRACE_INDEX_CLIENT_FILEPATH)'),
                           test_wrapper = 'strictr::initialize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]])\n{code}\nstrictr::finalize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]], fst::write_fst)',
                           testthat_wrapper = 'strictr::initialize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]])\ntestthat::test_file(\'{file}\', package=\'{package}\')\nstrictr::finalize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]], fst::write_fst)',
                           example_wrapper = 'strictr::initialize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]])\n{code}\nstrictr::finalize_strictr(commandArgs(trailingOnly=TRUE)[[1]], commandArgs(trailingOnly=TRUE)[[2]], fst::write_fst)',
