@@ -98,10 +98,10 @@ combine_analysis <- function(input_path, analysis) {
         pb$tick(tokens = list(type = type, package = package, filename = filename))
 
         df <- read_fst(filepath) %>%
-              add_column(type = type,
-                         package = package,
-                         filename = filename,
-                         .before = 1)
+            add_column(type = type,
+                       package = package,
+                       filename = filename,
+                       .before = 1)
     }
 
     filepaths <- keep(map_chr(paths, make_filepath), file_exists)
@@ -545,53 +545,53 @@ summarize_reflection <- function(data) {
     str(arg_ref)
 
     splitter <- function(split) {
-      split <- split[-1]
-      paste("`", split, "`", sep="", collapse = " ")
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
     }
 
     arg_ref <-
-      data$arg_ref %>%
-      mutate(backtrace = str_replace_all(backtrace, "id = [0-9]+", "id = <id>")) %>%
-      count(ref_type, transitive,
-            source_qual_name, source_formal_pos, source_call_expr, source_force_depth,
-            source_self_ref_seq, source_ref_seq, source_force_depth, source_default,
-            qual_name, formal_pos, call_expr, force_depth,
-            self_ref_seq, ref_seq, force_depth, default, backtrace,
-            name = "count")
+        data$arg_ref %>%
+        mutate(backtrace = str_replace_all(backtrace, "id = [0-9]+", "id = <id>")) %>%
+        count(ref_type, transitive,
+              source_qual_name, source_formal_pos, source_call_expr, source_force_depth,
+              source_self_ref_seq, source_ref_seq, source_force_depth, source_default,
+              qual_name, formal_pos, call_expr, force_depth,
+              self_ref_seq, ref_seq, force_depth, default, backtrace,
+              name = "count")
 
     split_names <- str_split(arg_ref$qual_name, fixed(NAME_SEPARATOR))
     pack_name <- map_chr(split_names, ~.[1])
     fun_name <- map_chr(split_names, splitter)
     outer <- map_int(split_names, length) == 2
 
-  arg_ref <-
-    arg_ref %>%
-    mutate(pack_name = pack_name,
-           fun_name = fun_name,
-           outer = outer) %>%
-    filter(pack_name != "<NA>" & outer) %>%
-    select(-qual_name, -outer)
+    arg_ref <-
+        arg_ref %>%
+        mutate(pack_name = pack_name,
+               fun_name = fun_name,
+               outer = outer) %>%
+        filter(pack_name != "<NA>" & outer) %>%
+        select(-qual_name, -outer)
 
-  transitive_arg_ref <- filter(arg_ref, transitive)
+    transitive_arg_ref <- filter(arg_ref, transitive)
 
-  direct_arg_ref <- filter(arg_ref, !transitive)
+    direct_arg_ref <- filter(arg_ref, !transitive)
 
-  source_split_names <- str_split(transitive_arg_ref$source_qual_name, fixed(NAME_SEPARATOR))
-  source_pack_name <- map_chr(source_split_names, ~.[1])
-  source_fun_name <- map_chr(source_split_names, splitter)
-  source_outer <- map_int(source_split_names, length) == 2
+    source_split_names <- str_split(transitive_arg_ref$source_qual_name, fixed(NAME_SEPARATOR))
+    source_pack_name <- map_chr(source_split_names, ~.[1])
+    source_fun_name <- map_chr(source_split_names, splitter)
+    source_outer <- map_int(source_split_names, length) == 2
 
-  transitive_arg_ref <-
-    transitive_arg_ref %>%
-    mutate(source_pack_name = source_pack_name,
-           source_fun_name = source_fun_name,
-           source_outer = source_outer) %>%
-    filter(source_pack_name != "<NA>" & source_outer) %>%
-    select(-source_qual_name, -source_outer)
+    transitive_arg_ref <-
+        transitive_arg_ref %>%
+        mutate(source_pack_name = source_pack_name,
+               source_fun_name = source_fun_name,
+               source_outer = source_outer) %>%
+        filter(source_pack_name != "<NA>" & source_outer) %>%
+        select(-source_qual_name, -source_outer)
 
     arg_ref <- bind_rows(direct_arg_ref, transitive_arg_ref)
 
-  str(arg_ref)
+    str(arg_ref)
 
     list(arg_ref = arg_ref)
 }
@@ -623,7 +623,7 @@ reduce_effects <- function(data) {
         count(qual_name, fun_hash, fun_def,
               formal_pos, effect_seq, self_effect_seq,
               wt = count, name = "arg_count") ## %>%
-        ##print(n = Inf, width = Inf)
+    ##print(n = Inf, width = Inf)
 
     effects %>%
         count(transitive, type, name = "count") %>%
@@ -741,15 +741,15 @@ reduce_effects <- function(data) {
     ##    filter(var_name == "vec_duplicate_any") %>%
     ##    print()
 
-##    effects <-
-##        effects %>%
-##        left_join(functions, by = c("source_fun_id" = "fun_id")) %>%
-##        group_by(type, var_name, qual_name, source_formal_pos) %>%
-##        summarize(fun_id)
-##        arrange(desc(count)) %>%
-##        mutate(perc = round(count * 100 / sum(count), 2),
-##               cum_perc = round(100 * cumsum(count)/sum(count), 2))
-##        #print(n = Inf, width = Inf)
+    ##    effects <-
+    ##        effects %>%
+    ##        left_join(functions, by = c("source_fun_id" = "fun_id")) %>%
+    ##        group_by(type, var_name, qual_name, source_formal_pos) %>%
+    ##        summarize(fun_id)
+    ##        arrange(desc(count)) %>%
+    ##        mutate(perc = round(count * 100 / sum(count), 2),
+    ##               cum_perc = round(100 * cumsum(count)/sum(count), 2))
+    ##        #print(n = Inf, width = Inf)
 
 
     list(arg_effect_summary = arg_effect_summary, effects = effects)
@@ -811,22 +811,22 @@ summarize_effects <- function(data) {
     print(str(effects))
 
     splitter <- function(split) {
-      split <- split[-1]
-      paste("`", split, "`", sep="", collapse = " ")
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
     }
 
     print("here 1")
     effects <-
-      effects %>%
-      group_by(type, var_name, transitive, source_formal_pos,
-               formal_pos, backtrace, source_qual_name, source_call_expr,
-               source_force_depth, source_default, source_self_effect_seq,
-               source_effect_seq, qual_name, call_expr, force_depth,
-               default, self_effect_seq, effect_seq, source_arg_type,
-               source_expr_type, arg_type, expr_type) %>%
-      summarize(argument_count = sum(argument_count),
-                operation_count = sum(operation_count)) %>%
-      ungroup()
+        effects %>%
+        group_by(type, var_name, transitive, source_formal_pos,
+                 formal_pos, backtrace, source_qual_name, source_call_expr,
+                 source_force_depth, source_default, source_self_effect_seq,
+                 source_effect_seq, qual_name, call_expr, force_depth,
+                 default, self_effect_seq, effect_seq, source_arg_type,
+                 source_expr_type, arg_type, expr_type) %>%
+        summarize(argument_count = sum(argument_count),
+                  operation_count = sum(operation_count)) %>%
+        ungroup()
 
     split_names <- str_split(effects$qual_name, fixed(NAME_SEPARATOR))
     pack_name <- map_chr(split_names, ~.[1])
@@ -857,8 +857,8 @@ summarize_effects <- function(data) {
                source_outer = source_outer) %>%
         filter(source_pack_name != "<NA>" & source_outer) %>%
         select(-source_qual_name, -source_outer)
-        print("here 8")
-        effects <- bind_rows(direct_effects, transitive_effects)
+    print("here 8")
+    effects <- bind_rows(direct_effects, transitive_effects)
 
     str(effects)
 
@@ -931,7 +931,7 @@ reduce_escaped <- function(data) {
                cum_perc = round(100 * cumsum(count)/sum(count), 2)) %>%
         print()
 
-    ### effect sequence not empty
+### effect sequence not empty
     arguments %>%
         filter(escaped != 0) %>%
         left_join(functions, by = "fun_id") %>%
