@@ -982,5 +982,84 @@ reduce_error <- function(data) {
         print()
 }
 
+simplify_effect_seq <- function(seq) {
+    seq %>%
+        str_replace_all("[L]+", "L+") %>%
+        str_replace_all("[A]+", "A+") %>%
+        str_replace_all("[D]+", "D+") %>%
+        str_replace_all("[R]+", "R+")
+}
+
+
+reduce_direct_effects <- function(data) {
+    arguments <- data$output$arguments
+    functions <- select(data$output$functions, fun_id, qual_name, anonymous)
+
+    direct_effects <-
+        arguments %>%
+        filter(vararg == 0 & missing == 0) %>%
+        filter(!is.na(self_effect_seq) & self_effect_seq != "") %>%
+        select(arg_id, fun_id, formal_pos, force_pos, arg_type, expr_type, val_type, self_effect_seq) %>%
+        left_join(functions, by = "fun_id") %>%
+        filter(!anonymous) %>%
+        mutate(simplified_effect_seq = simplify_effect_seq(self_effect_seq),
+               lookup_count = str_count(self_effect_seq, "L"),
+               assign_count = str_count(self_effect_seq, "A"),
+               define_count = str_count(self_effect_seq, "D"),
+               remove_count = str_count(self_effect_seq, "R"),
+               error_count  = str_count(self_effect_seq, "E")) %>%
+        group_by(qual_name, formal_pos, force_pos, arg_type, expr_type, val_type, simplified_effect_seq) %>%
+        summarize(argument_count = n(),
+                  lookup_count = sum(lookup_count),
+                  assign_count = sum(assign_count),
+                  define_count = sum(define_count),
+                  remove_count = sum(remove_count),
+                  error_count  = sum(error_count)) %>%
+        ungroup()
+
+    list(direct_effects = direct_effects)
+}
+
+summarize_direct_effects <- function(data) {
+
+    direct_effects <- output$direct_effects
+
+
+    direct_effects <-
+        direct_effects %>%
+        group_by(qual_name, formal_pos, force_pos, arg_type, expr_type, val_type, simplified_effect_seq) %>%
+        summarize(argument_count = sum(argument_count),
+                  lookup_count = sum(lookup_count),
+                  assign_count = sum(assign_count),
+                  define_count = sum(define_count),
+                  remove_count = sum(remove_count),
+                  error_count  = sum(error_count)) %>%
+        ungroup()
+
+
+
+    splitter <- function(split) {
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    split_names <- str_split(direct_effects$qual_name, fixed(NAME_SEPARATOR))
+    pack_name <- map_chr(split_names, ~.[1])
+    fun_name <- map_chr(split_names, splitter)
+    outer <- map_int(split_names, length) == 2
+
+    direct_effects <-
+        direct_effects %>%
+        mutate(pack_name = pack_name,
+               fun_name = fun_name,
+               outer = outer) %>%
+        filter(pack_name != "<NA>" & outer) %>%
+        select(-qual_name, -outer)
+
+    list(direct_effects = direct_effects)
+}
+
+
 main()
+
 warnings()
