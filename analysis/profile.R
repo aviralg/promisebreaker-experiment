@@ -13,6 +13,7 @@ library(fst)
 library(progress)
 library(readr)
 
+NAME_SEPARATOR = "*$#$*"
 STEPS <- c("reduce", "combine", "summarize")
 
 main <- function(args = commandArgs(trailingOnly = TRUE)) {
@@ -90,9 +91,9 @@ combine_analysis <- function(input_path, analysis) {
     }
 
     read_df <- function(filepath) {
-        filename <- path_file(filepath)
-        package <- path_file(path_dir(filepath))
-        type <- path_file(path_dir(path_dir(filepath)))
+        filename <- path_file(path_dir(path_dir(filepath)))
+        package <- path_file(path_dir(path_dir(path_dir(filepath))))
+        type <- path_file(path_dir(path_dir(path_dir(path_dir(filepath)))))
 
         pb$tick(tokens = list(type = type, package = package, filename = filename))
 
@@ -120,9 +121,154 @@ add_cum_perc <- function(df) {
         mutate(cum_perc = round(cum_count / sum(count) * 100, 2))
 }
 
+################################################################################
+## ARGUMENT TYPE
+################################################################################
+
+reduce_argument_type <- function(data) {
+    arguments <- data$output$arguments
+    functions <- data$output$functions
+
+    argument_type <-
+        arguments %>%
+        select(fun_id, formal_pos, vararg, missing, arg_type, expr_type, val_type) %>%
+        left_join(select(functions, qual_name, anonymous, fun_id), by = "fun_id") %>%
+        select(-fun_id) %>%
+        count(qual_name, anonymous, formal_pos, vararg, missing, arg_type, expr_type, val_type, name = "argument_count")
+
+    list(argument_type = argument_type)
+}
+
+summarize_argument_type <- function(data) {
+    splitter <- function(split) {
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    argument_type <-
+        data$argument_type %>%
+        count(qual_name, anonymous, formal_pos, vararg, missing, arg_type, expr_type, val_type, wt = argument_count, name = "argument_count")
+
+    split_names <- str_split(argument_type$qual_name, fixed(NAME_SEPARATOR))
+    pack_name <- map_chr(split_names, ~.[1])
+    fun_name <- map_chr(split_names, splitter)
+    outer <- map_int(split_names, length) == 2
+
+    argument_type <-
+        argument_type %>%
+        mutate(pack_name = pack_name, fun_name = fun_name, outer = outer) %>%
+        filter(pack_name != "<NA>" & outer & !anonymous)
+
+    list(argument_type = argument_type)
+}
 
 ################################################################################
-## ARGUMENTSS
+## UNEVALUATED
+################################################################################
+
+reduce_unevaluated <- function(data) {
+    arguments <- data$output$arguments
+    functions <- data$output$functions
+    calls <- data$output$calls
+
+    unevaluated <-
+        arguments %>%
+        filter(!vararg & !missing) %>%
+        filter(cap_force + esc_force == 0) %>%
+        left_join(select(functions, qual_name, anonymous, fun_id), by = "fun_id") %>%
+        filter(!anonymous) %>%
+        select(qual_name, formal_pos, arg_name, default_arg, fun_def, call_id) %>%
+        left_join(select(calls, call_id, call_expr), by = "call_id") %>%
+        select(-call_id) %>%
+        count(qual_name, formal_pos, arg_name, default_arg, fun_def, call_expr, name = "arg_count")
+
+    list(unevaluated = unevaluated)
+}
+
+summarize_unevaluated <- function(data) {
+
+    splitter <- function(split) {
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    parameters <-
+        data$arguments %>%
+        group_by(qual_name, anonymous, formal_pos) %>%
+        summarize(arg_name = first(arg_name),
+                  vararg = first(vararg),
+                  missing = sum(missing),
+                  call_count = sum(call_count),
+                  ## escaped
+                  escaped = sum(escaped),
+                  ## force
+                  force_tot = sum(force_tot),
+                  force_cap = sum(force_cap),
+                  force_esc = sum(force_esc),
+                  force_con = sum(force_con),
+                  ## lookup
+                  lookup_tot = sum(lookup_tot),
+                  lookup_cap = sum(lookup_cap),
+                  lookup_esc = sum(lookup_esc),
+                  lookup_con = sum(lookup_con),
+                  ## meta
+                  meta_tot = sum(meta_tot),
+                  meta_cap = sum(meta_cap),
+                  meta_esc = sum(meta_esc),
+                  ## assign
+                  assign_self  = sum(assign_self),
+                  assign_tot = sum(assign_tot),
+                  ## define
+                  define_self  = sum(define_self),
+                  define_tot = sum(define_tot),
+                  ## remove
+                  remove_self  = sum(remove_self),
+                  remove_tot = sum(remove_tot),
+                  ## error
+                  error_self  = sum(error_self),
+                  error_tot = sum(error_tot),
+                  ## lookup
+                  lookup_self  = sum(lookup_self),
+                  lookup_tot = sum(lookup_tot),
+                  ## as.environment
+                  as_env_self = sum(as_env_self),
+                  as_env_tot = sum(as_env_tot),
+                  ## as.environment
+                  pos_env_self = sum(pos_env_self),
+                  pos_env_tot = sum(pos_env_tot)) %>%
+        ungroup() %>%
+        mutate(pack_name = unlist(map(str_split(qual_name, fixed(NAME_SEPARATOR)), ~.[1]))) %>%
+        mutate(fun_name = unlist(map(str_split(qual_name, fixed(NAME_SEPARATOR)), splitter))) %>%
+        mutate(outer = unlist(map(str_split(qual_name, fixed(NAME_SEPARATOR)), length)) == 2) %>%
+        ## filter functions that are top-level and not anonymous
+        filter(pack_name != "<NA>" & outer & !anonymous) %>%
+        mutate(vararg_lazy = as.logical(vararg),
+               force_lazy = force_tot != call_count,
+               meta_lazy = meta_tot != 0,
+
+               assign_lazy  = assign_tot != 0,
+               define_lazy  = define_tot != 0,
+               remove_lazy = remove_tot != 0,
+               error_lazy = error_tot != 0,
+               lookup_lazy = lookup_tot != 0,
+               effect_lazy = assign_lazy | define_lazy | remove_lazy | error_lazy | lookup_lazy,
+
+               as_env_lazy = as_env_tot != 0,
+               pos_env_lazy = pos_env_tot != 0,
+               ref_lazy = as_env_lazy | pos_env_lazy)
+
+    laziness <-
+        parameters %>%
+        count(vararg_lazy, force_lazy, meta_lazy, effect_lazy, ref_lazy, name = "count") %>%
+        arrange(desc(count)) %>%
+        mutate(perc = round(count * 100 / sum(count), 2)) %>%
+        mutate(cum_perc = cumsum(perc))
+
+    list(parameters = parameters)
+}
+
+################################################################################
+## ARGUMENTS
 ################################################################################
 
 reduce_arguments <- function(data) {
@@ -257,9 +403,9 @@ summarize_arguments <- function(data) {
                   pos_env_self = sum(pos_env_self),
                   pos_env_tot = sum(pos_env_tot)) %>%
         ungroup() %>%
-        mutate(pack_name = unlist(map(str_split(qual_name, fixed(name_sep)), ~.[1]))) %>%
-        mutate(fun_name = unlist(map(str_split(qual_name, fixed(name_sep)), splitter))) %>%
-        mutate(outer = unlist(map(str_split(qual_name, fixed(name_sep)), length)) == 2) %>%
+        mutate(pack_name = unlist(map(str_split(qual_name, fixed(NAME_SEPARATOR)), ~.[1]))) %>%
+        mutate(fun_name = unlist(map(str_split(qual_name, fixed(NAME_SEPARATOR)), splitter))) %>%
+        mutate(outer = unlist(map(str_split(qual_name, fixed(NAME_SEPARATOR)), length)) == 2) %>%
         ## filter functions that are top-level and not anonymous
         filter(pack_name != "<NA>" & outer & !anonymous) %>%
         mutate(vararg_lazy = as.logical(vararg),
@@ -277,13 +423,6 @@ summarize_arguments <- function(data) {
                pos_env_lazy = pos_env_tot != 0,
                ref_lazy = as_env_lazy | pos_env_lazy)
 
-    laziness <-
-        parameters %>%
-        count(vararg_lazy, force_lazy, meta_lazy, effect_lazy, ref_lazy, name = "count") %>%
-        arrange(desc(count)) %>%
-        mutate(perc = round(count * 100 / sum(count), 2)) %>%
-        mutate(cum_perc = cumsum(perc))
-
     list(parameters = parameters)
 }
 
@@ -292,31 +431,33 @@ summarize_arguments <- function(data) {
 ################################################################################
 
 reduce_functions <- function(data) {
-    arguments <- data$output$arguments
     functions <- data$output$functions
 
-    function_summary <-
-        functions %>%
-        count(anonymous, qual_name, name = "count") %>%
-        add_cum_perc()
-
-    function_summary %>%
-        filter(anonymous) %>%
-        print()
-
-    function_summary %>%
-        filter(!anonymous) %>%
-        print()
+    list(functions = functions)
 }
 
-combine_functions <- function(data) {
+summarize_functions <- function(data) {
+    functions <- data$functions
+
+    splitter <- function(split) {
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    name_split <- str_split(functions$qual_name, fixed(NAME_SEPARATOR))
+    functions %<>%
+        mutate(pack_name = map_chr(name_split, ~.[1])) %>%
+        mutate(fun_name = map_chr(name_split, splitter)) %>%
+        mutate(outer = map_int(name_split, length) == 2) %>%
+        filter(!anonymous & outer & pack_name != "<NA>") %>%
+        group_by(pack_name, fun_name, qual_name) %>%
+        summarize(fun_hash = first(fun_hash),
+                  fun_def = first(fun_def),
+                  call_count = sum(call_count)) %>%
+        ungroup()
+
+    list(functions = functions)
 }
-
-
-################################################################################
-## SIGNATURE
-################################################################################
-
 
 ################################################################################
 ## METAPROGRAMMING
@@ -362,50 +503,97 @@ combine_metaprogramming <- function(reduce) {
 ################################################################################
 
 reduce_reflection <- function(data) {
-        arguments <- data$output$arguments
-    functions <- select(data$output$functions, fun_id, qual_name, fun_hash, fun_def, anonymous)
+
+    arguments <- data$output$arguments
+    functions <- select(data$output$functions, fun_id, qual_name, anonymous)
     arg_ref <- data$output$arg_ref
-    calls <- data$output$calls
+    calls <- select(data$output$calls, call_id, call_expr)
 
-    arg_ref_summary <-
+    arguments <-
         arguments %>%
-        filter(vararg == 0, ref_seq != "") %>%
-        count(fun_id, formal_pos, ref_seq, self_ref_seq, name = "count") %>%
-        left_join(functions, by = "fun_id") %>%
-        filter(!anonymous) %>%
-        count(qual_name, formal_pos, ref_seq, self_ref_seq,
-              wt = count, name = "arg_count") %>%
-        mutate(ref_seq = str_trunc(ref_seq, 20),
-               self_ref_seq = str_trunc(self_ref_seq, 20)) %>%
-        print()
+        filter(vararg == 0 & missing == 0) %>%
+        select(arg_id, force_depth, default, self_ref_seq, ref_seq)
 
-
+    arg_ref <-
         arg_ref %>%
-            left_join(functions, by = "fun_id") %>%
-            print()
+        left_join(functions, by = c("source_fun_id" = "fun_id"))%>%
+        filter(is.na(anonymous) | !anonymous) %>%
+        left_join(calls, by = c("source_call_id" = "call_id")) %>%
+        left_join(arguments, by = c("source_arg_id" = "arg_id")) %>%
+        select(-source_arg_id, -source_fun_id, -source_call_id, -anonymous) %>%
+        rename(source_qual_name = qual_name,
+               source_call_expr = call_expr,
+               source_self_ref_seq = self_ref_seq,
+               source_ref_seq = ref_seq,
+               source_force_depth = force_depth,
+               source_default = default) %>%
+        left_join(functions, by = "fun_id") %>%
+        filter(is.na(anonymous) | !anonymous) %>%
+        left_join(calls, by = "call_id") %>%
+        left_join(arguments, by = "arg_id") %>%
+        select(-arg_id, -fun_id, -call_id, -anonymous)
 
-    ##effects %>%
-    ##    count(transitive, type, name = "count") %>%
-    ##    arrange(transitive, desc(count)) %>%
-    ##    print()
-    ##
-    ##effects %>%
-    ##    filter(!transitive) %>%
-    ##    distinct(type, arg_id) %>%
-    ##    count(type, name = "count") %>%
-    ##    arrange(desc(count)) %>%
-    ##    print()
-    ##
-    ##effects %>%
-    ##    filter(transitive) %>%
-    ##    distinct(type, arg_id) %>%
-    ##    count(type, name = "count") %>%
-    ##    arrange(desc(count)) %>%
-    ##    print()
+    str(arg_ref %>% filter(!transitive))
 
+    list(arg_ref = arg_ref)
 }
 
 summarize_reflection <- function(data) {
+
+    arg_ref <- data$arg_ref
+
+    str(arg_ref)
+
+    splitter <- function(split) {
+      split <- split[-1]
+      paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    arg_ref <-
+      data$arg_ref %>%
+      mutate(backtrace = str_replace_all(backtrace, "id = [0-9]+", "id = <id>")) %>%
+      count(ref_type, transitive,
+            source_qual_name, source_formal_pos, source_call_expr, source_force_depth,
+            source_self_ref_seq, source_ref_seq, source_force_depth, source_default,
+            qual_name, formal_pos, call_expr, force_depth,
+            self_ref_seq, ref_seq, force_depth, default, backtrace,
+            name = "count")
+
+    split_names <- str_split(arg_ref$qual_name, fixed(NAME_SEPARATOR))
+    pack_name <- map_chr(split_names, ~.[1])
+    fun_name <- map_chr(split_names, splitter)
+    outer <- map_int(split_names, length) == 2
+
+  arg_ref <-
+    arg_ref %>%
+    mutate(pack_name = pack_name,
+           fun_name = fun_name,
+           outer = outer) %>%
+    filter(pack_name != "<NA>" & outer) %>%
+    select(-qual_name, -outer)
+
+  transitive_arg_ref <- filter(arg_ref, transitive)
+
+  direct_arg_ref <- filter(arg_ref, !transitive)
+
+  source_split_names <- str_split(transitive_arg_ref$source_qual_name, fixed(NAME_SEPARATOR))
+  source_pack_name <- map_chr(source_split_names, ~.[1])
+  source_fun_name <- map_chr(source_split_names, splitter)
+  source_outer <- map_int(source_split_names, length) == 2
+
+  transitive_arg_ref <-
+    transitive_arg_ref %>%
+    mutate(source_pack_name = source_pack_name,
+           source_fun_name = source_fun_name,
+           source_outer = source_outer) %>%
+    filter(source_pack_name != "<NA>" & source_outer) %>%
+    select(-source_qual_name, -source_outer)
+
+    arg_ref <- bind_rows(direct_arg_ref, transitive_arg_ref)
+
+  str(arg_ref)
+
+    list(arg_ref = arg_ref)
 }
 
 ################################################################################
@@ -567,7 +755,114 @@ reduce_effects <- function(data) {
     list(arg_effect_summary = arg_effect_summary, effects = effects)
 }
 
+reduce_effects <- function(data) {
+
+    arguments <- data$output$arguments
+    functions <- select(data$output$functions, fun_id, qual_name, anonymous)
+    calls <- select(data$output$calls, call_id, call_expr)
+    effects <- data$output$effects
+
+    arguments <-
+        arguments %>%
+        filter(vararg == 0 & missing == 0) %>%
+        select(arg_id, force_depth, default, self_effect_seq, effect_seq, arg_type, expr_type)
+
+    str(effects)
+
+    effects <-
+        effects %>%
+        left_join(functions, by = c("source_fun_id" = "fun_id"))%>%
+        filter(is.na(anonymous) | !anonymous) %>%
+        left_join(calls, by = c("source_call_id" = "call_id")) %>%
+        left_join(arguments, by = c("source_arg_id" = "arg_id")) %>%
+        select(-source_arg_id, -source_fun_id, -source_call_id, -anonymous) %>%
+        rename(source_qual_name = qual_name,
+               source_call_expr = call_expr,
+               source_self_effect_seq = self_effect_seq,
+               source_effect_seq = effect_seq,
+               source_force_depth = force_depth,
+               source_default = default,
+               source_arg_type = arg_type,
+               source_expr_type = expr_type) %>%
+        left_join(functions, by = "fun_id") %>%
+        filter(is.na(anonymous) | !anonymous) %>%
+        left_join(calls, by = "call_id") %>%
+        left_join(arguments, by = "arg_id") %>%
+        select(-fun_id, -call_id, -anonymous) %>%
+        mutate(backtrace = str_replace_all(backtrace, "id = [0-9]+", "id = <id>")) %>%
+        group_by(type, var_name, transitive, source_formal_pos,
+                 formal_pos, backtrace, source_qual_name, source_call_expr,
+                 source_force_depth, source_default, source_self_effect_seq,
+                 source_effect_seq, qual_name, call_expr, force_depth,
+                 default, self_effect_seq, effect_seq, source_arg_type,
+                 source_expr_type, arg_type, expr_type) %>%
+        summarize(argument_count = length(unique(arg_id)),
+                  operation_count = n()) %>%
+        ungroup()
+
+    str(effects %>% filter(!transitive))
+
+    list(effects = effects)
+}
+
 summarize_effects <- function(data) {
+    effects <- data$effects
+
+    print(str(effects))
+
+    splitter <- function(split) {
+      split <- split[-1]
+      paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    print("here 1")
+    effects <-
+      effects %>%
+      group_by(type, var_name, transitive, source_formal_pos,
+               formal_pos, backtrace, source_qual_name, source_call_expr,
+               source_force_depth, source_default, source_self_effect_seq,
+               source_effect_seq, qual_name, call_expr, force_depth,
+               default, self_effect_seq, effect_seq, source_arg_type,
+               source_expr_type, arg_type, expr_type) %>%
+      summarize(argument_count = sum(argument_count),
+                operation_count = sum(operation_count)) %>%
+      ungroup()
+
+    split_names <- str_split(effects$qual_name, fixed(NAME_SEPARATOR))
+    pack_name <- map_chr(split_names, ~.[1])
+    fun_name <- map_chr(split_names, splitter)
+    outer <- map_int(split_names, length) == 2
+
+    effects <-
+        effects %>%
+        mutate(pack_name = pack_name,
+               fun_name = fun_name,
+               outer = outer) %>%
+        filter(pack_name != "<NA>" & outer) %>%
+        select(-qual_name, -outer)
+
+    transitive_effects <- filter(effects, transitive)
+
+    direct_effects <- filter(effects, !transitive)
+
+    source_split_names <- str_split(transitive_effects$source_qual_name, fixed(NAME_SEPARATOR))
+    source_pack_name <- map_chr(source_split_names, ~.[1])
+    source_fun_name <- map_chr(source_split_names, splitter)
+    source_outer <- map_int(source_split_names, length) == 2
+
+    transitive_effects <-
+        transitive_effects %>%
+        mutate(source_pack_name = source_pack_name,
+               source_fun_name = source_fun_name,
+               source_outer = source_outer) %>%
+        filter(source_pack_name != "<NA>" & source_outer) %>%
+        select(-source_qual_name, -source_outer)
+        print("here 8")
+        effects <- bind_rows(direct_effects, transitive_effects)
+
+    str(effects)
+
+    list(effects = effects)
 }
 
 ################################################################################

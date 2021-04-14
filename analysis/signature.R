@@ -1,6 +1,3 @@
-## TO RUN: dependency/R-dyntrace/bin/R --file=analysis/cleanup.R --args experiment/profile/summarize/signatures/ experiment/profile/summarize/new-signatures/  experiment/profile/trace/index/corpus
-options(dplyr.width = Inf)
-
 library(experimentr)
 library(fs)
 library(dplyr)
@@ -17,7 +14,7 @@ library(tidyr)
 
 main <- function(args = commandArgs(trailingOnly = TRUE)) {
     parameter_filepath <- args[[1]]
-    corpus_file <- args[[3]]
+    corpus_file <- args[[2]]
     signature_dirpath <- args[[3]]
 
     parameters <- read_fst(parameter_filepath)
@@ -25,14 +22,14 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
 
     parameters <- filter(parameters, pack_name %in% corpus)
 
-    signatures <- bind_rowsc(make_signature(parameters, TRUE, TRUE, TRUE),
-                             make_signature(parameters, TRUE, TRUE, FALSE),
-                             make_signature(parameters, TRUE, FALSE, TRUE),
-                             make_signature(parameters, TRUE, FALSE, FALSE),
-                             make_signature(parameters, FALSE, TRUE, TRUE),
-                             make_signature(parameters, FALSE, TRUE, FALSE),
-                             make_signature(parameters, FALSE, FALSE, TRUE),
-                             make_signature(parameters, FALSE, FALSE, FALSE))
+    signatures <- bind_rows(make_signature(parameters, TRUE, TRUE, TRUE),
+                            make_signature(parameters, TRUE, TRUE, FALSE),
+                            make_signature(parameters, TRUE, FALSE, TRUE),
+                            make_signature(parameters, TRUE, FALSE, FALSE),
+                            make_signature(parameters, FALSE, TRUE, TRUE),
+                            make_signature(parameters, FALSE, TRUE, FALSE),
+                            make_signature(parameters, FALSE, FALSE, TRUE),
+                            make_signature(parameters, FALSE, FALSE, FALSE))
 
     save_signatures <- function(signame, pack_name, content) {
         dirpath <- path_join(c(signature_dirpath, signame))
@@ -42,10 +39,10 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
         write_file(content, filepath)
     }
 
-    signatures %>% pmap_dfr(save_signature)
+    pwalk(signatures, save_signatures)
 }
 
-make_signature <- function(parameters, force_lazy, effect_lazy, ref_lazy, name_sep = "*$#$*") {
+make_signature <- function(parameters, force_lazy, effect_lazy, ref_lazy) {
 
     signame <- paste("signature",
                      c("-force", "+force")[force_lazy + 1],
@@ -82,13 +79,12 @@ make_signature <- function(parameters, force_lazy, effect_lazy, ref_lazy, name_s
             result
         }) %>%
         ungroup() %>%
-        filter(pack_name != "<NA>") %>%
         group_by(pack_name) %>%
         group_modify(~{
             tibble(content = paste(.x$content, collapse = "\n"))
         }) %>%
         ungroup() %>%
-        filter(pack_name, content) %>%
+        select(pack_name, content) %>%
         add_column(signame = signame, .before = 1)
 
     sig_tbl
