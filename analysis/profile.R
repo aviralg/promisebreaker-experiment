@@ -1020,10 +1020,9 @@ reduce_direct_effects <- function(data) {
     list(direct_effects = direct_effects)
 }
 
-summarize_direct_effects <- function(data) {
+summarize_direct_effects <- function(output) {
 
     direct_effects <- output$direct_effects
-
 
     direct_effects <-
         direct_effects %>%
