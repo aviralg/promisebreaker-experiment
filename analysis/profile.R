@@ -1115,32 +1115,30 @@ reduce_indirect_effects <- function(data) {
     arguments <-
         arguments %>%
         filter(vararg == 0 & missing == 0) %>%
-        select(arg_id, fun_id, formal_pos, force_pos, arg_type, expr_type, val_type)
+        select(arg_id, arg_type, expr_type, val_type)
 
     str(effects)
 
     indirect_effects <-
         effects %>%
-        filter(!is.na(source_fun_id)) %>%
+        filter(transitive) %>%
         left_join(functions, by = c("source_fun_id" = "fun_id"))%>%
         filter(is.na(anonymous) | !anonymous) %>%
         left_join(arguments, by = c("source_arg_id" = "arg_id")) %>%
         select(-source_arg_id, -source_fun_id, -source_call_id, -anonymous) %>%
         rename(source_qual_name = qual_name,
-               source_force_depth = force_depth,
-               source_default = default,
                source_arg_type = arg_type,
-               source_expr_type = expr_type) %>%
+               source_expr_type = expr_type,
+               source_val_type = val_type) %>%
         left_join(functions, by = "fun_id") %>%
         filter(is.na(anonymous) | !anonymous) %>%
-        left_join(calls, by = "call_id") %>%
         left_join(arguments, by = "arg_id") %>%
         select(-fun_id, -call_id, -anonymous) %>%
-        count(type, transitive, source_formal_pos, formal_pos, source_qual_name,
-              source_force_depth, source_default, qual_name, force_depth,
-              default, source_arg_type, source_expr_type, arg_type, expr_type,
-              name = "operation_count")
-
+        count(type, transitive, source_formal_pos, formal_pos,
+              source_qual_name, qual_name,
+              source_arg_type, source_expr_type,
+              arg_type, expr_type, source_val_type, val_type, name = "operation_count")
+    
     str(indirect_effects)
 
     list(indirect_effects = indirect_effects)
