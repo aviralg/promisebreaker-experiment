@@ -1138,8 +1138,54 @@ reduce_indirect_effects <- function(data) {
               source_qual_name, qual_name,
               source_arg_type, source_expr_type,
               arg_type, expr_type, source_val_type, val_type, name = "operation_count")
-    
+
     str(indirect_effects)
+
+    list(indirect_effects = indirect_effects)
+}
+
+summarize_indirect_effects <- function(output) {
+    indirect_effects <- output$indirect_effects
+
+    print(str(indirect_effects))
+
+    splitter <- function(split) {
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    indirect_effects <-
+        indirect_effects %>%
+        count(type, transitive, source_formal_pos, formal_pos,
+              source_qual_name, qual_name,
+              source_arg_type, source_expr_type,
+              arg_type, expr_type, source_val_type, val_type, wt = operation_count, name = "operation_count")
+
+    split_names <- str_split(indirect_effects$qual_name, fixed(NAME_SEPARATOR))
+    pack_name <- map_chr(split_names, ~.[1])
+    fun_name <- map_chr(split_names, splitter)
+    outer <- map_int(split_names, length) == 2
+
+    indirect_effects <-
+        indirect_effects %>%
+        mutate(pack_name = pack_name,
+               fun_name = fun_name,
+               outer = outer) %>%
+        filter(pack_name != "<NA>" & outer) %>%
+        select(-qual_name, -outer)
+
+    source_split_names <- str_split(indirect_effects$source_qual_name, fixed(NAME_SEPARATOR))
+    source_pack_name <- map_chr(source_split_names, ~.[1])
+    source_fun_name <- map_chr(source_split_names, splitter)
+    source_outer <- map_int(source_split_names, length) == 2
+
+    indirect_effects <-
+        indirect_effects %>%
+        mutate(source_pack_name = source_pack_name,
+               source_fun_name = source_fun_name,
+               source_outer = source_outer) %>%
+        filter(source_pack_name != "<NA>" & source_outer) %>%
+        select(-source_qual_name, -source_outer)
 
     list(indirect_effects = indirect_effects)
 }
