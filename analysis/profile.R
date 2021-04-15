@@ -1058,7 +1058,6 @@ summarize_statistics <- function(output) {
     list(allocation = allocation, execution = execution)
 }
 
-
 ################################################################################
 ## ARGUMENT TYPE
 ################################################################################
@@ -1128,8 +1127,6 @@ reduce_indirect_effects <- function(data) {
         left_join(arguments, by = c("source_arg_id" = "arg_id")) %>%
         select(-source_arg_id, -source_fun_id, -source_call_id, -anonymous) %>%
         rename(source_qual_name = qual_name,
-               source_self_effect_seq = self_effect_seq,
-               source_effect_seq = effect_seq,
                source_force_depth = force_depth,
                source_default = default,
                source_arg_type = arg_type,
@@ -1139,11 +1136,10 @@ reduce_indirect_effects <- function(data) {
         left_join(calls, by = "call_id") %>%
         left_join(arguments, by = "arg_id") %>%
         select(-fun_id, -call_id, -anonymous) %>%
-        count(type, transitive, source_formal_pos, formal_pos,
-              source_qual_name, source_force_depth, source_default,
-              source_self_effect_seq, source_effect_seq, qual_name,
-              force_depth, default, self_effect_seq, effect_seq,
-              source_arg_type, source_expr_type, arg_type, expr_type, name = "operation_count")
+        count(type, transitive, source_formal_pos, formal_pos, source_qual_name,
+              source_force_depth, source_default, qual_name, force_depth,
+              default, source_arg_type, source_expr_type, arg_type, expr_type,
+              name = "operation_count")
 
     str(indirect_effects)
 
