@@ -1190,6 +1190,44 @@ summarize_indirect_effects <- function(output) {
     list(indirect_effects = indirect_effects)
 }
 
+################################################################################
+## METAPROGRAMMING
+################################################################################
+
+reduce_metaprogramming <- function(data) {
+
+    arguments <- data$output$arguments
+    functions <- select(data$output$functions, fun_id, qual_name, anonymous)
+    metaprograming <- data$output$metaprogramming
+
+    arguments <-
+        arguments %>%
+        filter(vararg == 0 & missing == 0) %>%
+        select(arg_id, arg_type, expr_type, val_type)
+
+    str(metaprogramming)
+
+    metaprogramming <-
+        metaprogramming %>%
+        left_join(functions, by = c("source_fun_id" = "fun_id"))%>%
+        filter(is.na(anonymous) | !anonymous) %>%
+        left_join(arguments, by = c("source_arg_id" = "arg_id")) %>%
+        select(-source_arg_id, -source_fun_id, -source_call_id, -anonymous) %>%
+        rename(source_qual_name = qual_name,
+               source_arg_type = arg_type,
+               source_expr_type = expr_type,
+               source_val_type = val_type) %>%
+        left_join(functions, by = "sink_fun_id") %>%
+        filter(is.na(anonymous) | !anonymous) %>%
+        select(-sink_fun_id, -sink_call_id, -anonymous) %>%
+        count(meta_type, source_qual_name, source_arg_type, source_expr_type, source_val_type,
+              source_formal_pos, qual_name, depth, name = "argument_count")
+
+    str(metaprogramming)
+
+    list(metaprogramming = metaprogramming)
+}
+
 
 main()
 
