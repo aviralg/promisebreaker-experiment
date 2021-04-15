@@ -1064,6 +1064,35 @@ reduce_statistics <- function(data) {
          execution = data$statistics$execution)
 }
 
+summarize_statistics <- function(output) {
+    allocation <- output$allocation
+    execution <- output$execution
+
+    allocation <-
+        allocation %>%
+        group_by(type) %>%
+        summarize(size = first(size),
+                  allocated = sum(allocated),
+                  deallocated = sum(deallocated),
+                  finalized = sum(finalized),
+                  max_alive = sum(max_alive),
+                  zombie = sum(zombie)) %>%
+        ungroup()
+
+    execution <-
+        execution %>%
+        group_by(exec) %>%
+        summarize(total_time = sum(total_time),
+                  execution_count = sum(execution_count),
+                  average_time = total_time / execution_count,
+                  minimum_time = min(minimum_time),
+                  maximum_time = max(maximum_time)) %>%
+        ungroup()
+
+    list(allocation = allocation, execution = execution)
+}
+
+
 main()
 
 warnings()
