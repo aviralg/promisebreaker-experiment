@@ -122,47 +122,6 @@ add_cum_perc <- function(df) {
 }
 
 ################################################################################
-## ARGUMENT TYPE
-################################################################################
-
-reduce_argument_type <- function(data) {
-    arguments <- data$output$arguments
-    functions <- data$output$functions
-
-    argument_type <-
-        arguments %>%
-        select(fun_id, formal_pos, vararg, missing, arg_type, expr_type, val_type) %>%
-        left_join(select(functions, qual_name, anonymous, fun_id), by = "fun_id") %>%
-        select(-fun_id) %>%
-        count(qual_name, anonymous, formal_pos, vararg, missing, arg_type, expr_type, val_type, name = "argument_count")
-
-    list(argument_type = argument_type)
-}
-
-summarize_argument_type <- function(data) {
-    splitter <- function(split) {
-        split <- split[-1]
-        paste("`", split, "`", sep="", collapse = " ")
-    }
-
-    argument_type <-
-        data$argument_type %>%
-        count(qual_name, anonymous, formal_pos, vararg, missing, arg_type, expr_type, val_type, wt = argument_count, name = "argument_count")
-
-    split_names <- str_split(argument_type$qual_name, fixed(NAME_SEPARATOR))
-    pack_name <- map_chr(split_names, ~.[1])
-    fun_name <- map_chr(split_names, splitter)
-    outer <- map_int(split_names, length) == 2
-
-    argument_type <-
-        argument_type %>%
-        mutate(pack_name = pack_name, fun_name = fun_name, outer = outer) %>%
-        filter(pack_name != "<NA>" & outer & !anonymous)
-
-    list(argument_type = argument_type)
-}
-
-################################################################################
 ## UNEVALUATED
 ################################################################################
 
@@ -982,6 +941,10 @@ reduce_error <- function(data) {
         print()
 }
 
+################################################################################
+## DIRECT EFFECTS
+################################################################################
+
 simplify_effect_seq <- function(seq) {
     seq %>%
         str_replace_all("[L]+", "L+") %>%
@@ -1058,6 +1021,9 @@ summarize_direct_effects <- function(output) {
     list(direct_effects = direct_effects)
 }
 
+################################################################################
+## STATISTICS
+################################################################################
 
 reduce_statistics <- function(data) {
     list(allocation = data$statistics$allocation,
@@ -1090,6 +1056,51 @@ summarize_statistics <- function(output) {
         ungroup()
 
     list(allocation = allocation, execution = execution)
+}
+
+
+################################################################################
+## ARGUMENT TYPE
+################################################################################
+
+reduce_argument_type <- function(data) {
+
+    arguments <- data$output$arguments
+    functions <- select(data$output$functions, fun_id, qual_name, anonymous)
+
+    argument_type <-
+        arguments %>%
+        filter(vararg == 0 & missing == 0) %>%
+        count(fun_id, formal_pos, arg_type, expr_type, val_type, name = "argument_count") %>%
+        left_join(functions, by = "fun_id") %>%
+        filter(!anonymous) %>%
+        select(-anonymous, -fun_id)
+
+    list(argument_type)
+}
+
+summarize_argument_type <- function(output) {
+    splitter <- function(split) {
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    argument_type <-
+        output$argument_type %>%
+        count(qual_name, formal_pos, arg_type, expr_type, val_type, wt = argument_count, name = "argument_count")
+
+    split_names <- str_split(argument_type$qual_name, fixed(NAME_SEPARATOR))
+    pack_name <- map_chr(split_names, ~.[1])
+    fun_name <- map_chr(split_names, splitter)
+    outer <- map_int(split_names, length) == 2
+
+    argument_type <-
+        argument_type %>%
+        mutate(pack_name = pack_name, fun_name = fun_name, outer = outer) %>%
+        filter(pack_name != "<NA>" & outer) %>%
+        select(-qual_name, -outer)
+
+    list(argument_type = argument_type)
 }
 
 
