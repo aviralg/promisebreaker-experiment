@@ -1228,6 +1228,46 @@ reduce_metaprogramming <- function(data) {
     list(metaprogramming = metaprogramming)
 }
 
+summarize_metaprogramming <- function(output) {
+    metaprogramming <- output$metaprogramming
+
+    print(str(metaprogramming))
+
+    splitter <- function(split) {
+        split <- split[-1]
+        paste("`", split, "`", sep="", collapse = " ")
+    }
+
+    metaprogramming <-
+        metaprogramming %>%
+        count(meta_type, source_qual_name, source_arg_type, source_expr_type, source_val_type,
+              source_formal_pos, qual_name, depth, wt = argument_count, name = "argument_count")
+
+    split_names <- str_split(metaprogramming$qual_name, fixed(NAME_SEPARATOR))
+    pack_name <- map_chr(split_names, ~.[1])
+    fun_name <- map_chr(split_names, splitter)
+    outer <- map_int(split_names, length) == 2
+
+    source_split_names <- str_split(metaprogramming$source_qual_name, fixed(NAME_SEPARATOR))
+    source_pack_name <- map_chr(source_split_names, ~.[1])
+    source_fun_name <- map_chr(source_split_names, splitter)
+    source_outer <- map_int(source_split_names, length) == 2
+
+    metaprogramming <-
+        metaprogramming %>%
+        mutate(pack_name = pack_name,
+               fun_name = fun_name,
+               outer = outer,
+               source_pack_name = source_pack_name,
+               source_fun_name = source_fun_name,
+               source_outer = source_outer) %>%
+        filter(pack_name != "<NA>" & outer) %>%
+        filter(source_pack_name != "<NA>" & source_outer) %>%
+        select(-qual_name, -outer, -source_qual_name, -source_outer)
+
+    list(metaprogramming = metaprogramming)
+}
+
 
 main()
 
