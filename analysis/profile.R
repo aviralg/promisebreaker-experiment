@@ -1198,7 +1198,7 @@ reduce_metaprogramming <- function(data) {
 
     arguments <- data$output$arguments
     functions <- select(data$output$functions, fun_id, qual_name, anonymous)
-    metaprograming <- data$output$metaprogramming
+    metaprogramming <- data$output$metaprogramming
 
     arguments <-
         arguments %>%
@@ -1217,7 +1217,7 @@ reduce_metaprogramming <- function(data) {
                source_arg_type = arg_type,
                source_expr_type = expr_type,
                source_val_type = val_type) %>%
-        left_join(functions, by = "sink_fun_id") %>%
+        left_join(functions, by = c("sink_fun_id" = "fun_id")) %>%
         filter(is.na(anonymous) | !anonymous) %>%
         select(-sink_fun_id, -sink_call_id, -anonymous) %>%
         count(meta_type, source_qual_name, source_arg_type, source_expr_type, source_val_type,
