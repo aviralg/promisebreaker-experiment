@@ -1059,6 +1059,11 @@ summarize_direct_effects <- function(output) {
 }
 
 
+reduce_statistics <- function(data) {
+    list(allocation = data$statistics$allocation,
+         execution = data$statistics$execution)
+}
+
 main()
 
 warnings()
