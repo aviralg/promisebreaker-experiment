@@ -1231,7 +1231,7 @@ reduce_metaprogramming <- function(data) {
 summarize_metaprogramming <- function(output) {
     metaprogramming <- output$metaprogramming
 
-    print(str(metaprogramming))
+    str(metaprogramming)
 
     splitter <- function(split) {
         split <- split[-1]
@@ -1264,6 +1264,8 @@ summarize_metaprogramming <- function(output) {
         filter(pack_name != "<NA>" & outer) %>%
         filter(source_pack_name != "<NA>" & source_outer) %>%
         select(-qual_name, -outer, -source_qual_name, -source_outer)
+
+    str(metaprogramming)
 
     list(metaprogramming = metaprogramming)
 }
