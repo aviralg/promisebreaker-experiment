@@ -365,6 +365,9 @@ install-custom-packages:
 
 .PHONY: install-custom-packages
 
+install-default-packages:
+	$(R_DYNTRACE_BIN) --file=packages.R
+
 ################################################################################
 ## dependency
 ################################################################################
