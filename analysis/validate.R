@@ -32,26 +32,29 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
     signatures <- unique(joblog_tab$signature)
     print(signatures)
 
-    status_tab <-
+    raw_exitval_tab <-
         run_tab %>%
         select(type, package, filename, signature, exitval) %>%
         filter(signature %in% signatures) %>%
         pivot_wider(names_from = signature,
                     values_from = exitval,
-                    values_fill = NA_real_) %>%
+                    values_fill = NA_real_)
+
+    exitval_tab <-
+        raw_exitval_tab %>%
         count(`lazy-1`,
               `lazy-2`,
-              `signature+force+effect+reflection`,
-              `signature+force+effect-reflection`,
-              `signature+force-effect+reflection`,
-              `signature+force-effect-reflection`,
-              `signature-force+effect+reflection`,
-              `signature-force+effect-reflection`,
-              `signature-force-effect+reflection`,
-              `signature-force-effect-reflection`,
-              name = "count")
+               `signature+force+effect+reflection`,
+               `signature+force+effect-reflection`,
+               `signature+force-effect+reflection`,
+               `signature+force-effect-reflection`,
+               `signature-force+effect+reflection`,
+               `signature-force+effect-reflection`,
+               `signature-force-effect+reflection`,
+               `signature-force-effect-reflection`,
+               name = "count")
 
-    output_tab <-
+    raw_stdout_tab <-
         run_tab %>%
         select(type, package, filename, signature, stdout) %>%
         filter(signature %in% signatures) %>%
@@ -68,8 +71,24 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
                `signature-force-effect+reflection` = `signature-force-effect+reflection` == `lazy-1`,
                `signature-force-effect-reflection` = `signature-force-effect-reflection` == `lazy-1`,
                `lazy-1` = TRUE)
+    stdout_tab <-
+        raw_stdout_tab %>%
+        count(`lazy-1`,
+              `lazy-2`,
+              `signature+force+effect+reflection`,
+              `signature+force+effect-reflection`,
+              `signature+force-effect+reflection`,
+              `signature+force-effect-reflection`,
+              `signature-force+effect+reflection`,
+              `signature-force+effect-reflection`,
+              `signature-force-effect+reflection`,
+              `signature-force-effect-reflection`,
+              name = "count")
 
-    print("Different exitcode")
+    cat("Exitcode\n")
+
+    print(exitval_tab)
+
     run_tab %>%
         filter(signature %in% c("signature+force+effect+reflection", "lazy-1")) %>%
         group_by(type, package, filename) %>%
@@ -78,47 +97,30 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
         filter(failed) %>%
         print(n = Inf)
 
-    print("Different stdout")
+    cat("Stdout\n")
+
+    print(stdout_tab)
+
     diff_stdout <-
-        output_tab %>%
+        raw_stdout_tab %>%
         mutate(failed = `lazy-2` == TRUE & `signature+force+effect+reflection` == FALSE) %>%
         filter(failed) %>%
         distinct(type, package, filename)
+
+    print(diff_stdout)
     
-    diff_stdout %>%
+    diff_stdout_type <-
+        diff_stdout %>%
         count(type, name = "count") %>%
         print()
 
-    diff_stdout %>%
-        print(n = 100)
-
-    print(status_tab)
-
-    output_tab %>%
-    count(`lazy-1`,
-          `lazy-2`,
-          `signature+force+effect+reflection`,
-          `signature+force+effect-reflection`,
-          `signature+force-effect+reflection`,
-          `signature+force-effect-reflection`,
-          `signature-force+effect+reflection`,
-          `signature-force+effect-reflection`,
-          `signature-force-effect+reflection`,
-          `signature-force-effect-reflection`,
-          name = "count") %>%
-    print(n = Inf)
+    print(diff_stdout_type %>% print(n = 100))
 
     write_fst(run_tab, path_join(c(summary_dir, "run_tab.fst")))
-    write_csv(status_tab, path_join(c(summary_dir, "exitcode.csv")))
-    write_csv(output_tab, path_join(c(summary_dir, "stdout.csv")))
-
-
-    #filter(
-    #    across(
-    #        .cols = all_of(signatures),
-    #        .fns = ~ !is.na(.x)
-    #    )
-    #) %>%
+    write_csv(raw_exitval_tab, path_join(c(summary_dir, "exitval_raw.csv")))
+    write_csv(exitval_tab, path_join(c(summary_dir, "exitval_summary.csv")))
+    write_csv(raw_stdout_tab, path_join(c(summary_dir, "stdout_raw.csv")))
+    write_csv(stdout_tab, path_join(c(summary_dir, "stdout_summary.csv")))
 
 }
 
